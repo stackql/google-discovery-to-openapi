@@ -14,6 +14,9 @@ def clean_output_dir():
     if os.path.exists('openapi3'):
         shutil.rmtree('openapi3')
     os.mkdir('openapi3')
+    with open('openapi3/.gitignore', 'w') as f:
+        f.write('*\n')
+        f.write('!.gitignore\n')
 
 def populate_service_info(discovery_doc):
     return {
@@ -134,7 +137,6 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
         print('Adding %s verb...' % verb)
         paths_obj[path][verb] = {'description': description, 'operationId': operation_id}
         if 'request' in methods_obj[method].keys():
-            # populate request body
             req_ref = methods_obj[method]['request']['$ref']
             paths_obj[path][verb]['requestBody'] = {
                 'content': {

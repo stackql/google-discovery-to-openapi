@@ -46,8 +46,9 @@ def process_service(name, discovery_doc):
 
 # options
 get_preferred_only = True
+# add list of serice names to include or exclude or leave as None to process everything
 included_services = None
-excluded_services = ['storage']
+excluded_services = None
 
 # must be Python 3.9 or above
 print('Checking Python version...')
