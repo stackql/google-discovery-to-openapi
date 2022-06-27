@@ -45,6 +45,7 @@ def process_service(name, discovery_doc):
 
 
 # options
+is_google_cloud = True
 get_preferred_only = True
 # add list of serice names to include or exclude or leave as None to process everything
 included_services = None
@@ -67,7 +68,15 @@ items = response.json()['items']
 # iterate over all APIs
 for item in items:
     service_name = item['name']
+    if 'documentationLink' in item.keys():
+        doc_link = item['documentationLink']
+    else:
+        doc_link = ''
     service_id = item['id']
+    if is_google_cloud:
+        if not (service_name in ('compute', 'storage') or doc_link.startswith('https://cloud.google.com/') or doc_link.startswith('https://firebase.google.com/')):
+            print('Skipping %s (not a cloud platform API)' % service_id)
+            continue
     if get_preferred_only:
         if item['preferred'] == False:
             print('Skipping %s (not preffered)' % service_id)

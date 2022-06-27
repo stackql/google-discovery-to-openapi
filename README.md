@@ -18,3 +18,11 @@ The resultant OpenAPI service specifications can the be used with [@stackql/open
 ```
 python3.9 google_discovery_to_openapi.py
 ```
+
+### Generate Tags for Operations
+
+Run the following subsequent commands to generate tags for each operation in the generated OpenAPI service specifications.
+
+```
+python3.9 tag_operations.py
+```

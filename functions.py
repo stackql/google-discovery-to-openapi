@@ -91,15 +91,16 @@ def get_response(resp_schema):
 
 def get_resource_tag(operation_id):
     id_tokens = operation_id.split('.')
-    res_tokens = []
-    for i in range(len(id_tokens)):
-        if i == 0:
-            continue
-        elif i == (len(id_tokens)-1):
-            continue
-        else:
-            res_tokens.append(id_tokens[i])
-    return str('_'.join(res_tokens))
+    # res_tokens = []
+    # for i in range(len(id_tokens)):
+    #     if i == 0:
+    #         continue
+    #     elif i == (len(id_tokens)-1):
+    #         continue
+    #     else:
+    #         res_tokens.append(id_tokens[i])
+    # return str('_'.join(res_tokens))
+    return id_tokens[-2]
 
 def get_scope(obj):
     if 'scopes' in obj.keys():
@@ -147,7 +148,8 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
                     }
                 }
             }
-        paths_obj[path][verb]['tags'] = [get_resource_tag(operation_id)]
+        # paths_obj[path][verb]['tags'] = [get_resource_tag(operation_id)]
+        paths_obj[path][verb]['tags'] = []
         paths_obj[path][verb]['security'] = [{'Oauth2': scope, 'Oauth2c': scope}]
         if 'response' in methods_obj[method].keys():
             paths_obj[path][verb]['responses'] = get_response(methods_obj[method]['response']['$ref'])
