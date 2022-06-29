@@ -92,6 +92,9 @@ def build_tag_map(openapi_doc, service):
 
 # like XpnResource(s)
 
+def tag_compute_ops():
+    pass
+
 
 def tag_operations(openapi_doc, tag_map, path_map, service):
     for path in openapi_doc['paths'].keys():
@@ -107,10 +110,10 @@ def tag_operations(openapi_doc, tag_map, path_map, service):
                             resource = camel_to_snake(op_id.split('.')[-2]) + '_iam_policies'
                         elif resource.endswith('_aggregated_lists'):
                             resource = pluralize(resource.split('_aggregated_lists')[0])
-                        elif re.match('.*XpnHost(?s)', action):
-                            resource = "xpn_host_projects"
-                        elif re.match('.*XpnResource(?s)', action):
-                            resource = "xpn_resources"
+                        elif re.match(r'^[a-z]*XpnHost[s]*', action, flags=re.DOTALL):
+                            resource = 'xpn_host_projects'
+                        elif re.match(r'^[a-z]*XpnResource[s]*', action, flags=re.DOTALL):
+                            resource = 'xpn_resources'
                 else:
                     # try path_map
                     if path.split(':')[0] in path_map.keys():
