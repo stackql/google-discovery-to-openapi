@@ -32,30 +32,33 @@ def camel_to_snake(name):
     name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower().replace('__', '_')
 
+def pluralize(name):
+    if name.endswith('s'):
+        return name
+    elif name.endswith('y') and name[-2] in ['a', 'e', 'i', 'o', 'u']:
+        return name + 's'
+    elif name.endswith('y'):
+        return name[:-1] + 'ies'
+    else:
+        return name + 's'
+
 def get_resource_name(schema_name, service, meaningful_op_id):
-    # apigee
-    if service == 'apigee':
-        if schema_name.startswith('GoogleCloudApigeeV1'):
-            schema_name = schema_name[len('GoogleCloudApigeeV1'):]
-        elif schema_name.startswith('GoogleIamV1'):
-            schema_name = schema_name[len('GoogleIamV1'):]
-        elif schema_name == 'GoogleApiHttpBody':
-            schema_name = meaningful_op_id.replace('.', '_')
+    if schema_name in ['GoogleCloudApigeeV1Alias', 'GoogleCloudApigeeV1ListEnvironmentResourcesResponse', 'GoogleApiHttpBody']:
+        schema_name = '_'.join(meaningful_op_id.split('.'))
+    else:
+        schema_name = re.sub('V[0-9]', '', schema_name)
+        schema_name = re.sub('Google(Cloud)?(Apigee)?', '', schema_name)
+
     # add pluralization here
-    if meaningful_op_id.endswith('ies') and schema_name.endswith('y'):
-        schema_name = schema_name[:-1] + 'ies'
-    elif meaningful_op_id.endswith('s') and not schema_name.endswith('s') and not meaningful_op_id.endswith('keys'):
-        if schema_name.endswith('y'):
-            schema_name = schema_name[:-1] + 'ies'
-        else:
-            schema_name = schema_name + 's'
+    schema_name = pluralize(schema_name)
+
     # get and return resource name
-    if schema_name.lower() == service.lower():
-        return camel_to_snake(schema_name)
-    elif schema_name.lower().startswith(service.lower()):
+    if schema_name.lower().startswith(service.lower()):
         return camel_to_snake(schema_name[len(service):])
     else:
         return camel_to_snake(schema_name)
+
+# compute.networkFirewallPolicies.getIamPolicy
 
 def build_tag_map(openapi_doc, service):
     tag_map = {}
@@ -63,24 +66,51 @@ def build_tag_map(openapi_doc, service):
     for path in openapi_doc['paths'].keys():
         for verb in openapi_doc['paths'][path].keys():
             if verb != 'parameters':
-                if verb == 'get':
-                    op_id = openapi_doc['paths'][path][verb]['operationId']
-                    if op_id.split('.')[-1] != 'list':
+                op_id = openapi_doc['paths'][path][verb]['operationId']
+                action = op_id.split('.')[-1]
+                meaningful_op_id = get_meaningful_op_id(op_id)
+                if action in ['setIamPolicy', 'getIamPolicy', 'testIamPermissions']:
+                    tag_map[meaningful_op_id] = 'iam_policies'
+                elif verb == 'get':
+                    if action != 'list':
+                        # find schema name for the 'thing' being returned
                         schema_name = openapi_doc['paths'][path][verb]['responses']['200']['content']['application/json']['schema']['$ref'].split('/')[-1]
                         # print(schema_name)
-                        meaningful_op_id = get_meaningful_op_id(op_id)
                         res_name = get_resource_name(schema_name, service, meaningful_op_id)
                         tag_map[meaningful_op_id] = res_name
                         path_map[path.split(':')[0]] = res_name
     return (tag_map, path_map)
 
+# compute.projects.getXpnHost
+# compute.projects.enableXpnHost
+
+# like XpnHost(s)
+
+
+# compute.projects.disableXpnResource
+# compute.projects.getXpnResources
+
+# like XpnResource(s)
+
+
 def tag_operations(openapi_doc, tag_map, path_map, service):
     for path in openapi_doc['paths'].keys():
         for verb in openapi_doc['paths'][path].keys():
             if verb != 'parameters':
-                meaningful_op_id = get_meaningful_op_id(openapi_doc['paths'][path][verb]['operationId'])
+                op_id = openapi_doc['paths'][path][verb]['operationId']
+                action = op_id.split('.')[-1]
+                meaningful_op_id = get_meaningful_op_id(op_id)
                 if meaningful_op_id in tag_map.keys():
                     resource = tag_map[meaningful_op_id]
+                    if service == 'compute':
+                        if resource == 'iam_policies':
+                            resource = camel_to_snake(op_id.split('.')[-2]) + '_iam_policies'
+                        elif resource.endswith('_aggregated_lists'):
+                            resource = pluralize(resource.split('_aggregated_lists')[0])
+                        elif re.match('.*XpnHost(?s)', action):
+                            resource = "xpn_host_projects"
+                        elif re.match('.*XpnResource(?s)', action):
+                            resource = "xpn_resources"
                 else:
                     # try path_map
                     if path.split(':')[0] in path_map.keys():
@@ -89,6 +119,10 @@ def tag_operations(openapi_doc, tag_map, path_map, service):
                         resource = 'operations'
                     else:
                         resource = camel_to_snake(meaningful_op_id.split('.')[-1])
+                # clean up duplicate tokens
+                if '_' in resource:
+                    if resource.split('_')[0] == resource.split('_')[1]:
+                        resource = '_'.join(resource.split('_')[1:])
                 openapi_doc['paths'][path][verb]['tags'].append(resource)
     write_tagged_openapi_doc(service, openapi_doc)
 
