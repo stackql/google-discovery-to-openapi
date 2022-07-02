@@ -58,12 +58,14 @@ def tag_operations(openapi_doc, service):
                     resource = clean_resource_name(service, resource, camel_to_snake(action[3:]))
                 elif action.startswith('fetch') and action != 'fetch':
                     resource = clean_resource_name(service, resource, camel_to_snake(action[5:]))
+                elif action.startswith('retrieve') and action != 'retrieve':
+                    resource = clean_resource_name(service, resource, camel_to_snake(action[8:]))
 
                 if service == 'compute':
                     if resource in ['backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'] and action == 'aggregatedList':
                         resource = resource + '_aggregated'
                     elif resource == 'instances' and action == 'bulkInsert': 
-                        resource = resource + '_bulk'
+                        resource = resource + '_batch'
 
                 if service == 'containeranalysis':
                     if resource in ['notes', 'occurrences'] and action == 'batchCreate':
@@ -76,6 +78,38 @@ def tag_operations(openapi_doc, service):
                 if service == 'documentai':
                     if operation_id.split('.')[1] == 'uiv1beta3':
                         resource = resource + '_uiv1beta3'
+
+                if service == 'videointelligence':
+                    if operation_id.split('.')[1] == 'operations' and resource == 'operations':
+                        resource =  'long_running_operations'
+
+                if service == 'osconfig':
+                    if resource == 'inventories' and action == 'list':
+                        resource = 'instance_inventories'
+                    elif resource == 'reports' and action == 'get':
+                        resource = 'report'
+                    elif resource == 'vulnerability_reports' and action == 'get':
+                        resource = 'vulnerability_report'
+
+                if service == 'privateca':
+                    if action == 'fetch' and resource == 'certificate_authorities':
+                        resource == 'certificate_signing_request'
+
+                if service == 'jobs':
+                    if resource == 'jobs' and action == 'batchCreate':
+                        resource = resource + '_batch'
+
+                if service == 'serviceconsumermanagement':
+                    if resource == 'tenancy_units' and action == 'removeProject':
+                        resource = resource + '_projects'
+
+                if service == 'serviceusage':
+                    if resource == 'services' and action == 'batchGet':
+                        resource = resource + '_batch'
+
+                if service == 'spanner':
+                    if resource == 'sessions' and action == 'read':
+                        resource = 'session_info'
 
                 openapi_doc['paths'][path][verb]['tags'].append(resource)
     write_tagged_openapi_doc(service, openapi_doc)
