@@ -93,7 +93,7 @@ def tag_operations(openapi_doc, service):
 
                 if service == 'privateca':
                     if action == 'fetch' and resource == 'certificate_authorities':
-                        resource == 'certificate_signing_request'
+                        resource = 'certificate_signing_request'
 
                 if service == 'jobs':
                     if resource == 'jobs' and action == 'batchCreate':
@@ -110,6 +110,8 @@ def tag_operations(openapi_doc, service):
                 if service == 'spanner':
                     if resource == 'sessions' and action == 'read':
                         resource = 'session_info'
+                    elif resource == 'sessions' and action == 'batchCreate':
+                        resource = resource + '_batch'
 
                 openapi_doc['paths'][path][verb]['tags'].append(resource)
     write_tagged_openapi_doc(service, openapi_doc)
