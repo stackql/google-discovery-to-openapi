@@ -102,11 +102,15 @@ def get_resource_tag(operation_id):
     # return str('_'.join(res_tokens))
     return id_tokens[-2]
 
-def get_scope(obj):
+def get_method_scopes(obj):
+    scopes = []
     if 'scopes' in obj.keys():
-        if len(obj['scopes']) > 0:
-            return obj['scopes'][0]
-    return ''
+        for scope in obj['scopes']:
+            scope_map = {}
+            scope_map['Oauth2'] = [].append(scope)
+            scope_map['Oauth2c'] = [].append(scope)
+            scopes.append(scope_map)
+    return scopes
 
 def get_valid_path(path):
     if path.startswith('/'):
@@ -129,7 +133,6 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
         else:
             description = ''
         operation_id = methods_obj[method]['id']
-        scope = get_scope(methods_obj[method])
 
         if path not in paths_obj:
             print('Adding %s path and global params...' % path)
@@ -150,7 +153,7 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
             }
         # paths_obj[path][verb]['tags'] = [get_resource_tag(operation_id)]
         paths_obj[path][verb]['tags'] = []
-        paths_obj[path][verb]['security'] = [{'Oauth2': scope, 'Oauth2c': scope}]
+        paths_obj[path][verb]['security'] = get_method_scopes(methods_obj[method])
         if 'response' in methods_obj[method].keys():
             paths_obj[path][verb]['responses'] = get_response(methods_obj[method]['response']['$ref'])
         if 'parameterOrder' in methods_obj[method].keys():
@@ -174,3 +177,32 @@ def populate_paths(paths_obj, obj, params_ref_list):
         elif isinstance(obj[key], str):
             pass
     return paths_obj
+
+def populate_security_schemes(auth_obj):
+    security_schemes = {}
+    scopes_source = auth_obj['oauth2']['scopes']
+    scopes_target = {}
+    authorization_url = 'https://accounts.google.com/o/oauth2/auth'
+    token_url = 'https://accounts.google.com/o/oauth2/token'
+    # reformat scopes
+    for scope in scopes_source:
+        scopes_target[scope] = scopes_source[scope]['description']
+    # create implicit flow security scheme
+    security_schemes['Oauth2'] = {}
+    security_schemes['Oauth2']['type'] = 'oauth2'
+    security_schemes['Oauth2']['description'] = 'Oauth 2.0 implicit authentication'
+    security_schemes['Oauth2']['flows'] = {}
+    security_schemes['Oauth2']['flows']['implicit'] = {}
+    security_schemes['Oauth2']['flows']['implicit']['authorizationUrl'] = authorization_url
+    security_schemes['Oauth2']['flows']['implicit']['scopes'] = scopes_target
+    # create authorization code flow security scheme
+    security_schemes['Oauth2c'] = {}
+    security_schemes['Oauth2c']['type'] = 'oauth2'
+    security_schemes['Oauth2c']['description'] = 'Oauth 2.0 authorization code authentication'
+    security_schemes['Oauth2c']['flows'] = {}
+    security_schemes['Oauth2c']['flows']['authorizationCode'] = {}
+    security_schemes['Oauth2c']['flows']['authorizationCode']['authorizationUrl'] = authorization_url
+    security_schemes['Oauth2c']['flows']['authorizationCode']['tokenUrl'] = token_url
+    security_schemes['Oauth2c']['flows']['authorizationCode']['scopes'] = scopes_target
+
+    return security_schemes

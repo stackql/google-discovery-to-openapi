@@ -23,7 +23,7 @@ def process_service(name, discovery_doc):
 
     # get securitySchemes
     if 'auth' in discovery_doc.keys():
-        openapi_doc['components']['securitySchemes'] = discovery_doc['auth']
+        openapi_doc['components']['securitySchemes'] = populate_security_schemes(discovery_doc['auth'])
 
     # get schemas
     openapi_doc['components']['schemas'] = replace_schema_refs(discovery_doc['schemas'])
