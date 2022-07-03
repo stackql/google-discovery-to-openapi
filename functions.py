@@ -107,8 +107,8 @@ def get_method_scopes(obj):
     if 'scopes' in obj.keys():
         for scope in obj['scopes']:
             scope_map = {}
-            scope_map['Oauth2'] = [].append(scope)
-            scope_map['Oauth2c'] = [].append(scope)
+            scope_map['Oauth2'] = [scope]
+            scope_map['Oauth2c'] = [scope]
             scopes.append(scope_map)
     return scopes
 
