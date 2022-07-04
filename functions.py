@@ -43,8 +43,26 @@ def process_parameters(input_params):
     params_ref_list = []
     for key in input_params.keys():
         params_ref_list.append({ '$ref': '#/components/parameters/%s' % key.replace('$.', '_.') })
-        params_obj[key.replace('$.', '_.')] = input_params[key]
+        #params_obj[key.replace('$.', '_.')] = input_params[key]
+        
+        if 'enum' in input_params[key].keys():
+            schema_obj = { 
+                'type': input_params[key]['type'],
+                'enum': input_params[key]['enum'] 
+            }
+        else:
+            schema_obj = { 
+                'type': input_params[key]['type'] 
+            }
+        
+        params_obj[key.replace('$.', '_.')] = {
+            'description': input_params[key]['description'],
+            'in': input_params[key]['location'],
+            'name': key.replace('$.', '_.'),
+            'schema': schema_obj
+        }
     return (params_obj, params_ref_list)
+
 
 def write_openapi_doc(name, openapi_doc):
     with open('openapi3/%s/%s.yaml' % (name, name), 'w') as f:

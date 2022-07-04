@@ -19,7 +19,11 @@ def process_service(name, discovery_doc):
     openapi_doc['externalDocs']['url'] = discovery_doc['documentationLink']
 
     # get servers
-    openapi_doc['servers'].append({'url': discovery_doc['rootUrl']})
+    server_url = discovery_doc['rootUrl'] + discovery_doc['servicePath']
+    if server_url[-1] == '/':
+        server_url = server_url[:-1]
+
+    openapi_doc['servers'].append({'url': server_url})
 
     # get securitySchemes
     if 'auth' in discovery_doc.keys():
