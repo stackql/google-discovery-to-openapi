@@ -43,7 +43,6 @@ def process_parameters(input_params):
     params_ref_list = []
     for key in input_params.keys():
         params_ref_list.append({ '$ref': '#/components/parameters/%s' % key.replace('$.', '_.') })
-        #params_obj[key.replace('$.', '_.')] = input_params[key]
         
         if 'enum' in input_params[key].keys():
             schema_obj = { 
@@ -72,7 +71,8 @@ def write_openapi_doc(name, openapi_doc):
 # path processing helper functions
 #
 
-def get_op_params(in_params, param_order):
+def get_op_params(method, param_order, path):
+    in_params = method['parameters']
     param_list = []
     for param in param_order:
         if param in in_params.keys():
@@ -81,16 +81,27 @@ def get_op_params(in_params, param_order):
         if param not in param_order:
             param_list.append(in_params[param] | {'name': param})
     param_list_final = []
+    # add path params
+    for token in path.split('/'):
+        if token.startswith('{'):
+            final_param = {}
+            final_param['in'] = 'path'
+            final_param['name'] = token.replace('{', '').replace('}', '')
+            final_param['required'] = True
+            final_param['schema'] = { 'type': 'string' }
+            param_list_final.append(final_param)
+    # add non path
     for param in param_list:
-        final_param = {}
-        final_param['in'] = param['location']
-        final_param['name'] = param['name']
-        if 'required' in param.keys():
-            final_param['required'] = param['required']
-        if 'description' in param.keys():
-            final_param['description'] = param['description']            
-        final_param['schema'] = { 'type': param['type'] }
-        param_list_final.append(final_param)
+        if param['location'] != 'path':
+            final_param = {}
+            final_param['in'] = param['location']
+            final_param['name'] = param['name']
+            if 'required' in param.keys():
+                final_param['required'] = param['required']
+            # if 'description' in param.keys():
+            #     final_param['description'] = param['description']
+            final_param['schema'] = { 'type': param['type'] }
+            param_list_final.append(final_param)
     return param_list_final
 
 def get_response(resp_schema):
@@ -152,6 +163,12 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
             description = ''
         operation_id = methods_obj[method]['id']
 
+        # update path
+        version = path.split('/')[1]
+        if len(path.split('/')) > 2:
+            if path.split('/')[2] == '{%sId}' % version:
+                path = get_valid_path(methods_obj[method]['path'].split(':')[0]).replace('+', '')
+
         if path not in paths_obj:
             print('Adding %s path and global params...' % path)
             paths_obj[path] = {'parameters': params_ref_list}
@@ -169,7 +186,6 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
                     }
                 }
             }
-        # paths_obj[path][verb]['tags'] = [get_resource_tag(operation_id)]
         paths_obj[path][verb]['tags'] = []
         paths_obj[path][verb]['security'] = get_method_scopes(methods_obj[method])
         if 'response' in methods_obj[method].keys():
@@ -179,7 +195,7 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
         else:
             parameter_order = []
         if 'parameters' in methods_obj[method].keys():
-            paths_obj[path][verb]['parameters'] = get_op_params(methods_obj[method]['parameters'], parameter_order)
+            paths_obj[path][verb]['parameters'] = get_op_params(methods_obj[method], parameter_order, path)
     return paths_obj
 
 def populate_paths(paths_obj, obj, params_ref_list):

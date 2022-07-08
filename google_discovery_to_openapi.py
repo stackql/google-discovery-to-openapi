@@ -47,7 +47,6 @@ def process_service(name, discovery_doc):
     print("Writing openapi3 spec for %s to file..." % name)
     write_openapi_doc(name, openapi_doc)
 
-
 # options
 is_google_cloud = True
 get_preferred_only = True
