@@ -1,4 +1,6 @@
-import sys, shutil, os, yaml
+import sys, shutil, yaml
+from pathlib import Path
+
 
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
@@ -11,9 +13,9 @@ def check_python_version():
         print('Python version: %s.%s.%s' % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
 
 def clean_output_dir():
-    if os.path.exists('openapi3'):
+    if Path('openapi3').exists():
         shutil.rmtree('openapi3')
-    os.mkdir('openapi3')
+    Path('openapi3').mkdir()
     with open('openapi3/.gitignore', 'w') as f:
         f.write('*\n')
         f.write('!.gitignore\n')
@@ -41,10 +43,10 @@ def replace_schema_refs(obj):
 def process_parameters(input_params):
     params_obj = {}
     params_ref_list = []
-    for key in input_params.keys():
+    for key in input_params:
         params_ref_list.append({ '$ref': '#/components/parameters/%s' % key.replace('$.', '_.') })
         
-        if 'enum' in input_params[key].keys():
+        if 'enum' in input_params[key]:
             schema_obj = { 
                 'type': input_params[key]['type'],
                 'enum': input_params[key]['enum'] 
@@ -75,9 +77,9 @@ def get_op_params(method, param_order, path):
     in_params = method['parameters']
     param_list = []
     for param in param_order:
-        if param in in_params.keys():
+        if param in in_params:
             param_list.append(in_params[param] | {'name': param})
-    for param in in_params.keys():
+    for param in in_params:
         if param not in param_order:
             param_list.append(in_params[param] | {'name': param})
     param_list_final = []
@@ -96,9 +98,9 @@ def get_op_params(method, param_order, path):
             final_param = {}
             final_param['in'] = param['location']
             final_param['name'] = param['name']
-            if 'required' in param.keys():
+            if 'required' in param:
                 final_param['required'] = param['required']
-            # if 'description' in param.keys():
+            # if 'description' in param:
             #     final_param['description'] = param['description']
             final_param['schema'] = { 'type': param['type'] }
             param_list_final.append(final_param)
@@ -133,7 +135,7 @@ def get_resource_tag(operation_id):
 
 def get_method_scopes(obj):
     scopes = []
-    if 'scopes' in obj.keys():
+    if 'scopes' in obj:
         for scope in obj['scopes']:
             scope_map = {}
             scope_map['Oauth2'] = [scope]
@@ -150,14 +152,14 @@ def get_valid_path(path):
 def process_methods(paths_obj, methods_obj, params_ref_list):
     for method in methods_obj:
         print('Processing method: %s...' % method)
-        if 'flatPath' in methods_obj[method].keys():
+        if 'flatPath' in methods_obj[method]:
             path = get_valid_path(methods_obj[method]['flatPath'])
-        elif 'path' in methods_obj[method].keys():
+        elif 'path' in methods_obj[method]:
             path = get_valid_path(methods_obj[method]['path'])
         else:
             raise Exception('Method %s has no path' % method)
         verb = methods_obj[method]['httpMethod'].lower()
-        if 'description' in methods_obj[method].keys():
+        if 'description' in methods_obj[method]:
             description = methods_obj[method]['description']
         else:
             description = ''
@@ -175,7 +177,7 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
 
         print('Adding %s verb...' % verb)
         paths_obj[path][verb] = {'description': description, 'operationId': operation_id}
-        if 'request' in methods_obj[method].keys():
+        if 'request' in methods_obj[method]:
             req_ref = methods_obj[method]['request']['$ref']
             paths_obj[path][verb]['requestBody'] = {
                 'content': {
@@ -188,13 +190,13 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
             }
         paths_obj[path][verb]['tags'] = []
         paths_obj[path][verb]['security'] = get_method_scopes(methods_obj[method])
-        if 'response' in methods_obj[method].keys():
+        if 'response' in methods_obj[method]:
             paths_obj[path][verb]['responses'] = get_response(methods_obj[method]['response']['$ref'])
-        if 'parameterOrder' in methods_obj[method].keys():
+        if 'parameterOrder' in methods_obj[method]:
             parameter_order = methods_obj[method]['parameterOrder']
         else:
             parameter_order = []
-        if 'parameters' in methods_obj[method].keys():
+        if 'parameters' in methods_obj[method]:
             paths_obj[path][verb]['parameters'] = get_op_params(methods_obj[method], parameter_order, path)
     return paths_obj
 
