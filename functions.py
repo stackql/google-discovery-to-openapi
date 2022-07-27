@@ -1,4 +1,6 @@
-import sys, shutil, os, yaml
+import sys, shutil, yaml
+from pathlib import Path
+
 
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
@@ -11,9 +13,9 @@ def check_python_version():
         print('Python version: %s.%s.%s' % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
 
 def clean_output_dir():
-    if os.path.exists('openapi3'):
+    if Path('openapi3').exists():
         shutil.rmtree('openapi3')
-    os.mkdir('openapi3')
+    Path('openapi3').mkdir()
     with open('openapi3/.gitignore', 'w') as f:
         f.write('*\n')
         f.write('!.gitignore\n')

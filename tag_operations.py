@@ -1,19 +1,21 @@
-import os, yaml, re, shutil
+import yaml, re, shutil
+from pathlib import Path
+
 
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
         return True
 
 def clean_tagged_output_dir():
-    if os.path.exists('openapi3_tagged'):
+    if Path('openapi3_tagged').exists():
         shutil.rmtree('openapi3_tagged')
-    os.mkdir('openapi3_tagged')
+    Path('openapi3_tagged').mkdir()
     with open('openapi3_tagged/.gitignore', 'w') as f:
         f.write('*\n')
         f.write('!.gitignore\n')
 
 def write_tagged_openapi_doc(name, openapi_doc):
-    os.mkdir('openapi3_tagged/%s' % name)
+    (Path('openapi3_tagged') / name).mkdir()
     with open('openapi3_tagged/%s/%s.yaml' % (name, name), 'w') as f:
         yaml.dump(openapi_doc, f, Dumper=NoAliasDumper, default_flow_style=False)
 
@@ -122,12 +124,11 @@ def tag_operations(openapi_doc, service):
 
 clean_tagged_output_dir()
 rootdir = 'openapi3'
-for service in os.listdir(rootdir):
-    d = os.path.join(rootdir, service)
+for service in filter(Path.is_file, Path(rootdir).iterdir()):
     # if service == 'apigee':
-    if os.path.isdir(d):
+    if (Path(rootdir) / service).is_dir():
         print('Processing %s...' % service)
-        service_file = os.path.join(rootdir, service, service + '.yaml')
+        service_file = Path(rootdir) / service / f"{service}.yaml"
         with open(service_file, 'r') as f:
             openapi_doc = yaml.load(f, Loader=yaml.FullLoader)
             tag_operations(openapi_doc, service)

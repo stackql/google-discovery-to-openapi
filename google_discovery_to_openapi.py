@@ -1,5 +1,7 @@
-import requests, os
+import requests
+from pathlib import Path
 from functions import *
+
 
 # main function to convert google service discovery doc to openapi spec
 def process_service(name, discovery_doc):
@@ -7,7 +9,7 @@ def process_service(name, discovery_doc):
     
     # create output dir
     print("Creating output dir...")
-    os.mkdir('openapi3/%s' % name)
+    (Path('openapi3') / name).mkdir()
     
     # convert doc
     print("Converting discovery document for %s into an openapi3 spec..." % name)
