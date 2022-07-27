@@ -30,14 +30,14 @@ def process_service(name, discovery_doc):
     openapi_doc['servers'].append({'url': server_url})
 
     # get securitySchemes
-    if 'auth' in discovery_doc.keys():
+    if 'auth' in discovery_doc:
         openapi_doc['components']['securitySchemes'] = populate_security_schemes(discovery_doc['auth'])
 
     # get schemas
     openapi_doc['components']['schemas'] = replace_schema_refs(discovery_doc['schemas'])
 
     # get parameters
-    if 'parameters' in discovery_doc.keys():
+    if 'parameters' in discovery_doc:
         (params_obj, params_ref_list) = process_parameters(discovery_doc['parameters'])
         openapi_doc['components']['parameters'] = params_obj
     else:

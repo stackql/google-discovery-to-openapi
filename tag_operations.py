@@ -30,8 +30,8 @@ def clean_resource_name(service, resource, subresource):
         return resource + '_' + subresource
 
 def tag_operations(openapi_doc, service):
-    for path in openapi_doc['paths'].keys():
-        for verb in openapi_doc['paths'][path].keys():
+    for path in openapi_doc['paths']:
+        for verb in openapi_doc['paths'][path]:
             if verb != 'parameters':
                 operation_id = openapi_doc['paths'][path][verb]['operationId']
                 resource = camel_to_snake(operation_id.split('.')[-2])
