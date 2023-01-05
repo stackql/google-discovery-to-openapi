@@ -26,3 +26,8 @@ Run the following subsequent commands to generate tags for each operation in the
 ```
 python3.9 tag_operations.py
 ```
+
+
+bin/google-discovery-to-openapi.mjs
+
+node .\bin\google-discovery-to-openapi.mjs

@@ -48,7 +48,7 @@ def process_service(name, discovery_doc):
     write_openapi_doc(name, openapi_doc)
 
 # options
-is_google_cloud = True
+is_google_cloud = False
 get_preferred_only = True
 # add list of serice names to include or exclude or leave as None to process everything
 included_services = None

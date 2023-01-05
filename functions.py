@@ -86,7 +86,7 @@ def get_op_params(method, param_order, path):
         if token.startswith('{'):
             final_param = {}
             final_param['in'] = 'path'
-            final_param['name'] = token.replace('{', '').replace('}', '')
+            final_param['name'] = token.replace('{', '').replace('}', '').split(':')[0]
             final_param['required'] = True
             final_param['schema'] = { 'type': 'string' }
             param_list_final.append(final_param)
@@ -168,6 +168,8 @@ def process_methods(paths_obj, methods_obj, params_ref_list):
         if len(path.split('/')) > 2:
             if path.split('/')[2] == '{%sId}' % version:
                 path = get_valid_path(methods_obj[method]['path'].split(':')[0]).replace('+', '')
+
+        ## TODO FIX serviceusage
 
         if path not in paths_obj:
             print('Adding %s path and global params...' % path)
