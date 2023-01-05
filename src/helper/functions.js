@@ -1,6 +1,23 @@
+import { logger } from '../util/logging.js';
+
 /*
 *  helper functions 
 */
+
+function camelToSnake(name) {
+  name = name.replace(/([A-Z])/g, function(match) {
+    return "_" + match;
+  });
+  return name.toLowerCase();
+}
+
+function cleanResourceName(service, resource, subresource) {
+  if (service === resource) {
+    return subresource;
+  } else {
+    return resource + '_' + subresource;
+  }
+}
 
 function getOpParams(method, paramOrder, path) {
     const inParams = method['parameters'];
@@ -84,9 +101,9 @@ function getValidPath(path) {
     }
 }
   
-function processMethods(pathsObj, methodsObj, paramsRefList) {
+function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
     for (const method in methodsObj) {
-      console.log(`Processing method: ${method}...`);
+      debug ? logger.debug(`Processing method: ${method}...`) : null;
       let path;
       if ('flatPath' in methodsObj[method]) {
         path = getValidPath(methodsObj[method]['flatPath']);
@@ -115,11 +132,11 @@ function processMethods(pathsObj, methodsObj, paramsRefList) {
       // TODO FIX serviceusage
       
       if (!(path in pathsObj)) {
-        console.log(`Adding ${path} path and global params...`);
+        debug ? logger.debug(`Adding ${path} path and global params...`) : null;
         pathsObj[path] = { parameters: paramsRefList };
       }
       
-      console.log(`Adding ${verb} verb...`);
+      debug ? logger.debug(`Adding ${verb} verb...`) : null;
       pathsObj[path][verb] = { description: description, operationId: operationId };
       if ('request' in methodsObj[method]) {
         const reqRef = methodsObj[method]['request']['$ref'];
@@ -150,17 +167,134 @@ function processMethods(pathsObj, methodsObj, paramsRefList) {
 *  exported functions 
 */
 
-export function populatePaths(pathsObj, obj, paramsRefList) {
+export function tagOperations(openapiDoc, service) {
+  for (const path of Object.keys(openapiDoc.paths)) {
+    for (const verb of Object.keys(openapiDoc.paths[path])) {
+      if (verb !== 'parameters') {
+        const operationId = openapiDoc.paths[path][verb].operationId;
+        let resource = camelToSnake(operationId.split('.')[operationId.split('.').length - 2]);
+        const action = operationId.split('.')[operationId.split('.').length - 1];
+
+        if (service === 'clouddebugger') {
+          const resTokens = [];
+          for (const token of operationId.split('.').slice(1, -1)) {
+            resTokens.push(token);
+          }
+          resource = resTokens.join('_');
+        } else if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
+          resource = cleanResourceName(service, resource, 'iam_policies');
+        } else if (action.startsWith('get') && action !== 'get') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(3)));
+        } else if (action.startsWith('list') && action !== 'list') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(4)));
+        } else if (action.startsWith('delete') && action !== 'delete') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
+        } else if (action.startsWith('batchGet') && action !== 'batchGet') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(8)));
+        } else if (action.startsWith('remove') && action !== 'remove') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
+        } else if (action.startsWith('create') && action !== 'create') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
+        } else if (action.startsWith('add') && action !== 'add') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(3)));
+        } else if (action.startsWith('fetch') && action !== 'fetch') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(5)));
+        } else if (action.startsWith('retrieve') && action !== 'retrieve') {
+          resource = cleanResourceName(service, resource, camelToSnake(action.slice(8)));
+        }
+
+        if (service === 'compute') {
+          if (['backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
+            resource = resource + '_aggregated';
+          } else if (resource === 'instances' && action === 'bulkInsert') {
+            resource = resource + '_batch';
+          }
+        }
+        
+        if (service === 'containeranalysis') {
+          if (['notes', 'occurrences'].includes(resource) && action === 'batchCreate') {
+            resource = resource + '_batch';
+          }
+        }
+        
+        if (service === 'dataflow') {
+          if (resource === 'jobs' && action === 'aggregated') {
+            resource = resource + '_aggregated';
+          }
+        }
+        
+        if (service === 'documentai') {
+          if (operationId.split('.')[1] === 'uiv1beta3') {
+            resource = resource + '_uiv1beta3';
+          }
+        }
+        
+        if (service === 'videointelligence') {
+          if (operationId.split('.')[1] === 'operations' && resource === 'operations') {
+            resource = 'long_running_operations';
+          }
+        }
+        
+        if (service === 'osconfig') {
+          if (resource === 'inventories' && action === 'list') {
+            resource = 'instance_inventories';
+          } else if (resource === 'reports' && action === 'get') {
+            resource = 'report';
+          } else if (resource === 'vulnerability_reports' && action === 'get') {
+            resource = 'vulnerability_report';
+          }
+        }
+        
+        if (service === 'privateca') {
+          if (action === 'fetch' && resource === 'certificate_authorities') {
+            resource = 'certificate_signing_request';
+          }
+        }
+        
+        if (service === 'jobs') {
+          if (resource === 'jobs' && action === 'batchCreate') {
+            resource = resource + '_batch';
+          }
+        }
+        
+        if (service === 'serviceconsumermanagement') {
+          if (resource === 'tenancy_units' && action === 'removeProject') {
+            resource = resource + '_projects';
+          }
+        }
+        
+        if (service === 'serviceusage') {
+          if (resource === 'services' && action === 'batchGet') {
+            resource = resource + '_batch';
+          }
+        }
+        
+        if (service === 'spanner') {
+          if (resource === 'sessions' && action === 'read') {
+            resource = 'session_info';
+          } else if (resource === 'sessions' && action === 'batchCreate') {
+            resource = resource + '_batch';
+          }
+        }
+        
+        openapiDoc.paths[path][verb].tags.push(resource);
+      }
+    }
+  }
+  return openapiDoc;
+}
+
+export function populatePaths(pathsObj, obj, paramsRefList, debug) {
     for (const key in obj) {
       if (obj[key] instanceof Object) {
         if (key === 'methods') {
-          pathsObj = processMethods(pathsObj, obj[key], paramsRefList);
+          pathsObj = processMethods(pathsObj, obj[key], paramsRefList, debug);
         }
-        populatePaths(pathsObj, obj[key], paramsRefList);
+        populatePaths(pathsObj, obj[key], paramsRefList, debug);
       } else if (Array.isArray(obj[key])) {
         for (const item of obj[key]) {
           if (item instanceof Object) {
-            populatePaths(pathsObj, item, paramsRefList);
+            populatePaths(pathsObj, item, paramsRefList, debug);
           }
         }
       } else if (typeof obj[key] === 'string') {

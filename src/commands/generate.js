@@ -10,6 +10,7 @@ import {
     replaceSchemaRefs, 
     processParameters, 
     populatePaths,
+    tagOperations,
 } from '../helper/functions.js';
 import { serviceCategories } from '../config/servicecategories.js';
 import * as path from 'path';
@@ -85,7 +86,11 @@ async function processService(serviceName, serviceCategory, serviceData, outputD
 
         // populate paths (most of the action happens here)
         debug ? logger.debug('populating paths..') : null;
-        openApiDoc['paths'] = populatePaths({}, serviceData.resources, paramRefList);
+        openApiDoc['paths'] = populatePaths({}, serviceData.resources, paramRefList, debug);
+
+        // tag operations
+        debug ? logger.debug('tagging operations..') : null;
+        openApiDoc = tagOperations(openApiDoc, serviceName);
 
         // write out openapi doc as yaml
         const openApiDocYaml = yaml.dump(openApiDoc);
