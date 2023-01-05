@@ -133,7 +133,7 @@ function parseArgumentsIntoOptions(args) {
     return {
         output: output,
         service: service,
-        preferred: preferred,
+        preferred: true, // TODO: implement nonpreferred
         category: category,
         debug: debug,
         command: command,

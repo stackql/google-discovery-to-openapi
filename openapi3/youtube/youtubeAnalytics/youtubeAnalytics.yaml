@@ -1,0 +1,15 @@
+openapi: 3.1.0
+info:
+  contact:
+    name: StackQL Studios
+    url: https://github.com/stackql/google-discovery-to-openapi
+    email: info@stackql.io
+  title: YouTube Analytics API
+  description: Retrieves your YouTube Analytics data.
+  version: v2
+  x-discovery-doc-revision: '20230103'
+  x-generated-date: '2023-01-05'
+externalDocs: {}
+servers: []
+components: {}
+paths: {}

@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  contact:
+    name: StackQL Studios
+    url: https://github.com/stackql/google-discovery-to-openapi
+    email: info@stackql.io
+  title: YouTube Reporting API
+  description: >-
+    Schedules reporting jobs containing your YouTube Analytics data and
+    downloads the resulting bulk data reports in the form of CSV files.
+  version: v1
+  x-discovery-doc-revision: '20230103'
+  x-generated-date: '2023-01-05'
+externalDocs: {}
+servers: []
+components: {}
+paths: {}
