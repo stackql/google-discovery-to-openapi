@@ -39,7 +39,7 @@ const generateUsage = [
             name: 'output',
             alias: 'o',
             type: String,
-            description: 'specify the output path for generated OpenAPI documents. (defaults to "openapi3")',
+            description: 'specify the output path for generated OpenAPI documents. (defaults to "openapi")',
         },
         {
             name: 'service',
@@ -90,7 +90,7 @@ function parseArgumentsIntoOptions(args) {
     const command = args[2] || false;
 
     // flag defaults
-    let output = 'openapi3';
+    let output = 'openapi';
     let service = 'all';
     let preferred = true;
     let category = 'all';
