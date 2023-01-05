@@ -11,7 +11,892 @@ info:
   version: v1
   x-discovery-doc-revision: '20230103'
   x-generated-date: '2023-01-05'
-externalDocs: {}
-servers: []
-components: {}
-paths: {}
+externalDocs:
+  url: https://developers.google.com/youtube/reporting/v1/reports/
+servers:
+  - url: https://youtube.googleapis.com
+  - url: https://youtubeanalytics.googleapis.com
+  - url: https://youtubereporting.googleapis.com
+components:
+  securitySchemes:
+    Oauth2:
+      type: oauth2
+      description: Oauth 2.0 implicit authentication
+      flows:
+        implicit:
+          authorizationUrl: https://accounts.google.com/o/oauth2/auth
+          scopes: &ref_0
+            https://www.googleapis.com/auth/yt-analytics-monetary.readonly: >-
+              View monetary and non-monetary YouTube Analytics reports for your
+              YouTube content
+            https://www.googleapis.com/auth/yt-analytics.readonly: View YouTube Analytics reports for your YouTube content
+    Oauth2c:
+      type: oauth2
+      description: Oauth 2.0 authorization code authentication
+      flows:
+        authorizationCode:
+          authorizationUrl: https://accounts.google.com/o/oauth2/auth
+          tokenUrl: https://accounts.google.com/o/oauth2/token
+          scopes: *ref_0
+  schemas:
+    Job:
+      id: Job
+      description: A job creating reports of a specific type.
+      type: object
+      properties:
+        id:
+          description: The server-generated ID of the job (max. 40 characters).
+          type: string
+        reportTypeId:
+          description: >-
+            The type of reports this job creates. Corresponds to the ID of a
+            ReportType.
+          type: string
+        name:
+          type: string
+          description: The name of the job (max. 100 characters).
+        systemManaged:
+          description: >-
+            True if this a system-managed job that cannot be modified by the
+            user; otherwise false.
+          type: boolean
+        expireTime:
+          description: >-
+            The date/time when this job will expire/expired. After a job
+            expired, no new reports are generated.
+          type: string
+          format: google-datetime
+        createTime:
+          type: string
+          format: google-datetime
+          description: The creation date/time of the job.
+    GdataDiffVersionResponse:
+      id: GdataDiffVersionResponse
+      type: object
+      description: gdata
+      properties:
+        objectVersion:
+          type: string
+          description: gdata
+        objectSizeBytes:
+          format: int64
+          type: string
+          description: gdata
+    Empty:
+      id: Empty
+      type: object
+      description: >-
+        A generic empty message that you can re-use to avoid defining duplicated
+        empty messages in your APIs. A typical example is to use it as the
+        request or the response type of an API method. For instance: service Foo
+        { rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
+      properties: {}
+    ReportType:
+      id: ReportType
+      description: A report type.
+      properties:
+        id:
+          description: The ID of the report type (max. 100 characters).
+          type: string
+        name:
+          type: string
+          description: The name of the report type (max. 100 characters).
+        deprecateTime:
+          description: The date/time when this report type was/will be deprecated.
+          type: string
+          format: google-datetime
+        systemManaged:
+          type: boolean
+          description: >-
+            True if this a system-managed report type; otherwise false.
+            Reporting jobs for system-managed report types are created
+            automatically and can thus not be used in the `CreateJob` method.
+      type: object
+    GdataDownloadParameters:
+      description: gdata
+      type: object
+      id: GdataDownloadParameters
+      properties:
+        allowGzipCompression:
+          description: gdata
+          type: boolean
+        ignoreRange:
+          type: boolean
+          description: gdata
+    GdataDiffUploadResponse:
+      properties:
+        objectVersion:
+          type: string
+          description: gdata
+        originalObject:
+          $ref: '#/components/schemas/GdataCompositeMedia'
+          description: gdata
+      type: object
+      id: GdataDiffUploadResponse
+      description: gdata
+    GdataContentTypeInfo:
+      id: GdataContentTypeInfo
+      type: object
+      properties:
+        fromHeader:
+          description: gdata
+          type: string
+        fromFileName:
+          type: string
+          description: gdata
+        bestGuess:
+          description: gdata
+          type: string
+        fromBytes:
+          description: gdata
+          type: string
+        fromUrlPath:
+          description: gdata
+          type: string
+      description: gdata
+    Report:
+      id: Report
+      description: >-
+        A report's metadata including the URL from which the report itself can
+        be downloaded.
+      type: object
+      properties:
+        id:
+          description: The server-generated ID of the report.
+          type: string
+        jobExpireTime:
+          type: string
+          format: google-datetime
+          description: >-
+            The date/time when the job this report belongs to will
+            expire/expired.
+        downloadUrl:
+          description: >-
+            The URL from which the report can be downloaded (max. 1000
+            characters).
+          type: string
+        startTime:
+          type: string
+          format: google-datetime
+          description: >-
+            The start of the time period that the report instance covers. The
+            value is inclusive.
+        jobId:
+          description: The ID of the job that created this report.
+          type: string
+        createTime:
+          description: The date/time when this report was created.
+          format: google-datetime
+          type: string
+        endTime:
+          format: google-datetime
+          description: >-
+            The end of the time period that the report instance covers. The
+            value is exclusive.
+          type: string
+    GdataBlobstore2Info:
+      description: gdata
+      properties:
+        uploadMetadataContainer:
+          format: byte
+          type: string
+          description: gdata
+        downloadReadHandle:
+          description: gdata
+          format: byte
+          type: string
+        blobId:
+          type: string
+          description: gdata
+        readToken:
+          description: gdata
+          type: string
+        blobGeneration:
+          type: string
+          format: int64
+          description: gdata
+      type: object
+      id: GdataBlobstore2Info
+    ListReportTypesResponse:
+      type: object
+      description: Response message for ReportingService.ListReportTypes.
+      id: ListReportTypesResponse
+      properties:
+        reportTypes:
+          items:
+            $ref: '#/components/schemas/ReportType'
+          type: array
+          description: The list of report types.
+        nextPageToken:
+          description: >-
+            A token to retrieve next page of results. Pass this value in the
+            ListReportTypesRequest.page_token field in the subsequent call to
+            `ListReportTypes` method to retrieve the next page of results.
+          type: string
+    GdataDiffChecksumsResponse:
+      type: object
+      description: gdata
+      properties:
+        chunkSizeBytes:
+          description: gdata
+          type: string
+          format: int64
+        checksumsLocation:
+          $ref: '#/components/schemas/GdataCompositeMedia'
+          description: gdata
+        objectVersion:
+          description: gdata
+          type: string
+        objectSizeBytes:
+          type: string
+          format: int64
+          description: gdata
+        objectLocation:
+          $ref: '#/components/schemas/GdataCompositeMedia'
+          description: gdata
+      id: GdataDiffChecksumsResponse
+    GdataMedia:
+      id: GdataMedia
+      properties:
+        inline:
+          type: string
+          format: byte
+          description: gdata
+        cosmoBinaryReference:
+          type: string
+          format: byte
+          description: gdata
+        hashVerified:
+          description: gdata
+          type: boolean
+        mediaId:
+          format: byte
+          description: gdata
+          type: string
+        bigstoreObjectRef:
+          type: string
+          format: byte
+          description: gdata
+        sha1Hash:
+          format: byte
+          description: gdata
+          type: string
+        isPotentialRetry:
+          description: gdata
+          type: boolean
+        referenceType:
+          enumDescriptions:
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+          description: gdata
+          type: string
+          enum:
+            - PATH
+            - BLOB_REF
+            - INLINE
+            - GET_MEDIA
+            - COMPOSITE_MEDIA
+            - BIGSTORE_REF
+            - DIFF_VERSION_RESPONSE
+            - DIFF_CHECKSUMS_RESPONSE
+            - DIFF_DOWNLOAD_RESPONSE
+            - DIFF_UPLOAD_REQUEST
+            - DIFF_UPLOAD_RESPONSE
+            - COSMO_BINARY_REFERENCE
+            - ARBITRARY_BYTES
+        token:
+          type: string
+          description: gdata
+        path:
+          description: gdata
+          type: string
+        algorithm:
+          description: gdata
+          type: string
+        md5Hash:
+          type: string
+          description: gdata
+          format: byte
+        diffUploadResponse:
+          $ref: '#/components/schemas/GdataDiffUploadResponse'
+          description: gdata
+        downloadParameters:
+          description: gdata
+          $ref: '#/components/schemas/GdataDownloadParameters'
+        filename:
+          description: gdata
+          type: string
+        diffDownloadResponse:
+          description: gdata
+          $ref: '#/components/schemas/GdataDiffDownloadResponse'
+        sha256Hash:
+          type: string
+          description: gdata
+          format: byte
+        length:
+          format: int64
+          description: gdata
+          type: string
+        diffChecksumsResponse:
+          $ref: '#/components/schemas/GdataDiffChecksumsResponse'
+          description: gdata
+        blobstore2Info:
+          description: gdata
+          $ref: '#/components/schemas/GdataBlobstore2Info'
+        contentTypeInfo:
+          $ref: '#/components/schemas/GdataContentTypeInfo'
+          description: gdata
+        timestamp:
+          description: gdata
+          format: uint64
+          type: string
+        blobRef:
+          format: byte
+          description: gdata
+          type: string
+        diffVersionResponse:
+          description: gdata
+          $ref: '#/components/schemas/GdataDiffVersionResponse'
+        crc32cHash:
+          format: uint32
+          description: gdata
+          type: integer
+        compositeMedia:
+          type: array
+          description: gdata
+          items:
+            $ref: '#/components/schemas/GdataCompositeMedia'
+        hash:
+          description: gdata
+          type: string
+        diffUploadRequest:
+          $ref: '#/components/schemas/GdataDiffUploadRequest'
+          description: gdata
+        objectId:
+          $ref: '#/components/schemas/GdataObjectId'
+          description: gdata
+        contentType:
+          description: gdata
+          type: string
+      description: gdata
+      type: object
+    GdataObjectId:
+      properties:
+        bucketName:
+          description: gdata
+          type: string
+        objectName:
+          description: gdata
+          type: string
+        generation:
+          format: int64
+          description: gdata
+          type: string
+      description: gdata
+      type: object
+      id: GdataObjectId
+    ListReportsResponse:
+      type: object
+      id: ListReportsResponse
+      properties:
+        reports:
+          type: array
+          description: The list of report types.
+          items:
+            $ref: '#/components/schemas/Report'
+        nextPageToken:
+          type: string
+          description: >-
+            A token to retrieve next page of results. Pass this value in the
+            ListReportsRequest.page_token field in the subsequent call to
+            `ListReports` method to retrieve the next page of results.
+      description: Response message for ReportingService.ListReports.
+    GdataDiffDownloadResponse:
+      properties:
+        objectLocation:
+          $ref: '#/components/schemas/GdataCompositeMedia'
+          description: gdata
+      description: gdata
+      type: object
+      id: GdataDiffDownloadResponse
+    GdataCompositeMedia:
+      id: GdataCompositeMedia
+      type: object
+      properties:
+        referenceType:
+          type: string
+          enum:
+            - PATH
+            - BLOB_REF
+            - INLINE
+            - BIGSTORE_REF
+            - COSMO_BINARY_REFERENCE
+          enumDescriptions:
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+            - gdata
+          description: gdata
+        crc32cHash:
+          description: gdata
+          format: uint32
+          type: integer
+        blobRef:
+          type: string
+          format: byte
+          description: gdata
+        path:
+          description: gdata
+          type: string
+        length:
+          type: string
+          description: gdata
+          format: int64
+        inline:
+          type: string
+          description: gdata
+          format: byte
+        cosmoBinaryReference:
+          type: string
+          format: byte
+          description: gdata
+        md5Hash:
+          type: string
+          description: gdata
+          format: byte
+        blobstore2Info:
+          description: gdata
+          $ref: '#/components/schemas/GdataBlobstore2Info'
+        objectId:
+          $ref: '#/components/schemas/GdataObjectId'
+          description: gdata
+        sha1Hash:
+          format: byte
+          description: gdata
+          type: string
+      description: gdata
+    GdataDiffUploadRequest:
+      id: GdataDiffUploadRequest
+      properties:
+        checksumsInfo:
+          description: gdata
+          $ref: '#/components/schemas/GdataCompositeMedia'
+        objectVersion:
+          type: string
+          description: gdata
+        objectInfo:
+          $ref: '#/components/schemas/GdataCompositeMedia'
+          description: gdata
+      type: object
+      description: gdata
+    ListJobsResponse:
+      description: Response message for ReportingService.ListJobs.
+      properties:
+        nextPageToken:
+          type: string
+          description: >-
+            A token to retrieve next page of results. Pass this value in the
+            ListJobsRequest.page_token field in the subsequent call to
+            `ListJobs` method to retrieve the next page of results.
+        jobs:
+          type: array
+          description: The list of jobs.
+          items:
+            $ref: '#/components/schemas/Job'
+      type: object
+      id: ListJobsResponse
+  parameters:
+    key:
+      description: >-
+        API key. Your API key identifies your project and provides you with API
+        access, quota, and reports. Required unless you provide an OAuth 2.0
+        token.
+      in: query
+      name: key
+      schema:
+        type: string
+    _.xgafv:
+      description: V1 error format.
+      in: query
+      name: _.xgafv
+      schema:
+        type: string
+        enum:
+          - '1'
+          - '2'
+    oauth_token:
+      description: OAuth 2.0 token for the current user.
+      in: query
+      name: oauth_token
+      schema:
+        type: string
+    alt:
+      description: Data format for response.
+      in: query
+      name: alt
+      schema:
+        type: string
+        enum:
+          - json
+          - media
+          - proto
+    prettyPrint:
+      description: Returns response with indentations and line breaks.
+      in: query
+      name: prettyPrint
+      schema:
+        type: boolean
+    access_token:
+      description: OAuth access token.
+      in: query
+      name: access_token
+      schema:
+        type: string
+    uploadType:
+      description: Legacy upload protocol for media (e.g. "media", "multipart").
+      in: query
+      name: uploadType
+      schema:
+        type: string
+    upload_protocol:
+      description: Upload protocol for media (e.g. "raw", "multipart").
+      in: query
+      name: upload_protocol
+      schema:
+        type: string
+    callback:
+      description: JSONP
+      in: query
+      name: callback
+      schema:
+        type: string
+    fields:
+      description: Selector specifying which fields to include in a partial response.
+      in: query
+      name: fields
+      schema:
+        type: string
+    quotaUser:
+      description: >-
+        Available to use for quota purposes for server-side applications. Can be
+        any arbitrary string assigned to a user, but should not exceed 40
+        characters.
+      in: query
+      name: quotaUser
+      schema:
+        type: string
+paths:
+  /v1/media/{mediaId}:
+    parameters: &ref_1
+      - $ref: '#/components/parameters/key'
+      - $ref: '#/components/parameters/_.xgafv'
+      - $ref: '#/components/parameters/oauth_token'
+      - $ref: '#/components/parameters/alt'
+      - $ref: '#/components/parameters/prettyPrint'
+      - $ref: '#/components/parameters/access_token'
+      - $ref: '#/components/parameters/uploadType'
+      - $ref: '#/components/parameters/upload_protocol'
+      - $ref: '#/components/parameters/callback'
+      - $ref: '#/components/parameters/fields'
+      - $ref: '#/components/parameters/quotaUser'
+    get:
+      description: >-
+        Method for media download. Download is supported on the URI
+        `/v1/media/{+name}?alt=media`.
+      operationId: youtubereporting.media.download
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdataMedia'
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+  /v1/reportTypes:
+    parameters: *ref_1
+    get:
+      description: Lists report types.
+      operationId: youtubereporting.reportTypes.list
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListReportTypesResponse'
+      parameters:
+        - in: query
+          name: pageToken
+          schema:
+            type: string
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+        - in: query
+          name: includeSystemManaged
+          schema:
+            type: boolean
+  /v1/jobs/{jobId}:
+    parameters: *ref_1
+    delete:
+      description: Deletes a job.
+      operationId: youtubereporting.jobs.delete
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empty'
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string
+    get:
+      description: Gets a job.
+      operationId: youtubereporting.jobs.get
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string
+  /v1/jobs:
+    parameters: *ref_1
+    post:
+      description: Creates a job and returns it.
+      operationId: youtubereporting.jobs.create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Job'
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+      parameters:
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string
+    get:
+      description: Lists jobs.
+      operationId: youtubereporting.jobs.list
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListJobsResponse'
+      parameters:
+        - in: query
+          name: includeSystemManaged
+          schema:
+            type: boolean
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string
+        - in: query
+          name: pageToken
+          schema:
+            type: string
+  /v1/jobs/{jobId}/reports:
+    parameters: *ref_1
+    get:
+      description: >-
+        Lists reports created by a specific job. Returns NOT_FOUND if the job
+        does not exist.
+      operationId: youtubereporting.jobs.reports.list
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListReportsResponse'
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+        - in: query
+          name: startTimeAtOrAfter
+          schema:
+            type: string
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string
+        - in: query
+          name: startTimeBefore
+          schema:
+            type: string
+        - in: query
+          name: pageToken
+          schema:
+            type: string
+        - in: query
+          name: createdAfter
+          schema:
+            type: string
+  /v1/jobs/{jobId}/reports/{reportId}:
+    parameters: *ref_1
+    get:
+      description: Gets the metadata of a specific report.
+      operationId: youtubereporting.jobs.reports.get
+      tags: []
+      security:
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+        - Oauth2:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+          Oauth2c:
+            - https://www.googleapis.com/auth/yt-analytics.readonly
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: onBehalfOfContentOwner
+          schema:
+            type: string

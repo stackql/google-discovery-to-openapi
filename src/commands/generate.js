@@ -1,18 +1,21 @@
 import { logger } from '../util/logging.js';
-import { createOrCleanDir, createDir, writeFile } from '../util/filesystem.js';
+import { 
+    createOrCleanDir, 
+    createDir, 
+    writeFile 
+} from '../util/filesystem.js';
+import { 
+    getCurrentDate,
+    populateSecuritySchemes, 
+    replaceSchemaRefs, 
+    processParameters, 
+    populatePaths,
+} from '../helper/functions.js';
 import { serviceCategories } from '../config/servicecategories.js';
 import * as path from 'path';
 import fetch from 'node-fetch';
 import * as yaml from 'js-yaml';
 
-function getCurrentDate() {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-  
 const rootDiscoveryUrl = 'https://discovery.googleapis.com/discovery/v1/apis';
 const baseOpenApiDoc = {
     openapi: '3.1.0', 
@@ -29,6 +32,10 @@ const baseOpenApiDoc = {
     paths: {}
 };
 
+/*
+*  service processing function
+*/
+
 async function processService(serviceName, serviceCategory, serviceData, outputDir, debug){
     try {
         // create output folder for service
@@ -37,12 +44,48 @@ async function processService(serviceName, serviceCategory, serviceData, outputD
         // init openapi doc
         let openApiDoc = baseOpenApiDoc;
 
-        // get service info
+        // populate service info
+        debug ? logger.debug('populating service info...') : null;
         openApiDoc['info']['title'] = serviceData.title;
         openApiDoc['info']['description'] = serviceData.description;
         openApiDoc['info']['version'] = serviceData.version;
         openApiDoc['info']['x-discovery-doc-revision'] = serviceData.revision; 
         openApiDoc['info']['x-generated-date'] = getCurrentDate();
+
+        // populate external docs
+        debug ? logger.debug('populating external docs..') : null;
+        openApiDoc['externalDocs']['url'] = serviceData.documentationLink;
+
+        // populate servers
+        debug ? logger.debug('populating servers..') : null;
+        let serverUrl = `${serviceData.rootUrl}${serviceData.servicePath}`;
+        if(serverUrl.endsWith('/')){
+            serverUrl = serverUrl.slice(0, -1);
+        }
+        openApiDoc['servers'].push({'url': serverUrl});        
+        
+        // populate securitySchemes
+        debug ? logger.debug('populating securitySchemes..') : null;
+        if(serviceData.auth){
+            openApiDoc['components']['securitySchemes'] = populateSecuritySchemes(serviceData.auth);
+        }
+    
+        // populate schemas
+        debug ? logger.debug('populating schemas..') : null;
+        openApiDoc['components']['schemas'] = replaceSchemaRefs(serviceData.schemas);
+
+        // populate parameters
+        debug ? logger.debug('populating parameters..') : null;
+        let paramRefList = [];
+        if(serviceData.parameters){
+            const [paramsObj, retParamsRefList] = processParameters(serviceData.parameters);
+            paramRefList = retParamsRefList;
+            openApiDoc['components']['parameters'] = paramsObj;
+        }
+
+        // populate paths (most of the action happens here)
+        debug ? logger.debug('populating paths..') : null;
+        openApiDoc['paths'] = populatePaths({}, serviceData.resources, paramRefList);
 
         // write out openapi doc as yaml
         const openApiDocYaml = yaml.dump(openApiDoc);
@@ -53,6 +96,10 @@ async function processService(serviceName, serviceCategory, serviceData, outputD
         logger.error(err);
     }
 }
+
+/*
+*  main routine
+*/
 
 export async function generateSpecs(options, rootDir) {
     const debug = options.debug;
