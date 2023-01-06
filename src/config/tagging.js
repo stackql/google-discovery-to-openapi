@@ -223,6 +223,68 @@ export function getSQLVerb(service, resource, action, operationId, httpVerb){
                 verb = 'exec';
             }
             break;
+        case 'doubleclicksearch':
+            if([
+                'doubleclicksearch.reports.getFile',
+                'doubleclicksearch.reports.getIdMappingFile',
+            ].includes(operationId)){
+                verb = 'exec';
+            }
+            break;
+        case 'tagmanager':
+            if([
+                'tagmanager.accounts.containers.workspaces.built_in_variables.create',
+            ].includes(operationId)){
+                verb = 'exec';
+            }
+            break;
+        case 'androidenterprise':
+            if([
+                'androidenterprise.enterprises.createEnrollmentToken',
+            ].includes(operationId)){
+                verb = 'exec';
+            }
+            break;
+        case 'androidmanagement':
+            if([
+                'androidmanagement.signupUrls.create',
+            ].includes(operationId)){
+                verb = 'exec';
+            }
+            break;
+        case 'displayvideo':
+            if([
+                'displayvideo.advertisers.lineItems.bulkListAssignedTargetingOptions',
+            ].includes(operationId)){
+                verb = 'exec';
+            }
+            break;
+        case 'prod_tt_sasportal':
+            if([
+                'prod_tt_sasportal.customers.nodes.get',
+                'prod_tt_sasportal.nodes.nodes.get',
+                'prod_tt_sasportal.nodes.get',
+            ].includes(operationId)){
+                verb = 'exec';
+            } else if ([
+                'prod_tt_sasportal.policies.get',
+            ].includes(operationId)){
+                verb = 'select';
+            }
+            break;
+        case 'sasportal':
+            if([
+                'sasportal.customers.nodes.get',
+                'sasportal.nodes.nodes.get',
+                'sasportal.nodes.get',
+            ].includes(operationId)){
+                verb = 'exec';
+            } else if ([
+                'sasportal.policies.get',
+            ].includes(operationId)){
+                verb = 'select';
+            }
+            break;
     }
     return verb;
 }

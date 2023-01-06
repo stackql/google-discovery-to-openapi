@@ -40,7 +40,7 @@ const baseOpenApiDoc = {
 async function processService(serviceName, serviceCategory, serviceData, outputDir, debug){
     try {
         // bypass problem service(s)
-        if(['integrations'].includes(serviceName)){
+        if(['integrations', 'groupsmigration'].includes(serviceName)){
             logger.info(`skipping service: ${serviceName}...`);
             return;
         }
