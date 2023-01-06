@@ -39,6 +39,12 @@ const baseOpenApiDoc = {
 
 async function processService(serviceName, serviceCategory, serviceData, outputDir, debug){
     try {
+        // bypass problem service(s)
+        if(['integrations'].includes(serviceName)){
+            logger.info(`skipping service: ${serviceName}...`);
+            return;
+        }
+
         // create output folder for service
         createDir(path.join(outputDir, serviceCategory, serviceName), debug);
 
@@ -63,6 +69,7 @@ async function processService(serviceName, serviceCategory, serviceData, outputD
         if(serverUrl.endsWith('/')){
             serverUrl = serverUrl.slice(0, -1);
         }
+        openApiDoc['servers'] = [];
         openApiDoc['servers'].push({'url': serverUrl});        
         
         // populate securitySchemes
