@@ -2,6 +2,8 @@
 
 Generates OpenAPI 3.x specification from Google Discovery documents.
 
+> OpenAPI 3 Specifications for Google Cloud APIs can be found at [__stackql/stackql-provider-registry__](https://github.com/stackql/stackql-provider-registry/tree/dev/providers/src/googleapis.com/v00.00.00000/services)
+
 ## Overview
 
 This script performs the following steps:
