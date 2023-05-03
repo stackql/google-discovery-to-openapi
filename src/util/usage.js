@@ -53,12 +53,12 @@ const generateUsage = [
             type: Boolean,
             description: 'use nonpreferred apis. (defaults to false)',
         },
-        {
-            name: 'category',
-            alias: 'c',
-            type: String,
-            description: 'generate specs for a specific service category or all service categories. (defaults to "all")',
-        },        
+        // {
+        //     name: 'category',
+        //     alias: 'c',
+        //     type: String,
+        //     description: 'generate specs for a specific service category or all service categories. (defaults to "all")',
+        // },        
         {
           name: 'debug',
           alias: 'd',
@@ -93,7 +93,7 @@ function parseArgumentsIntoOptions(args) {
     let output = 'openapi';
     let service = 'all';
     let preferred = true;
-    let category = 'all';
+    // let category = 'all';
     let debug = false;
     let help = false;
 
@@ -113,10 +113,10 @@ function parseArgumentsIntoOptions(args) {
             case '-n':
                 preferred = false;
                 break;
-            case '--category':
-            case '-c':
-                category = flags[i].split('=')[1];
-                break;                    
+            // case '--category':
+            // case '-c':
+            //     category = flags[i].split('=')[1];
+            //     break;                    
             case '--debug':
             case '-d':
                 debug = true;
@@ -134,7 +134,7 @@ function parseArgumentsIntoOptions(args) {
         output: output,
         service: service,
         preferred: true, // TODO: implement nonpreferred
-        category: category,
+        // category: category,
         debug: debug,
         command: command,
         help: help,
