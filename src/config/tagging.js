@@ -120,7 +120,7 @@ export function getResource(service, operationId){
     }
     return [resource, action];
 }
-
+  
 export function getSQLVerb(service, resource, action, operationId, httpVerb){
     let verb = 'exec';
     // action to sql verb mapping

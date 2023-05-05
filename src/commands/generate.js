@@ -12,7 +12,6 @@ import {
     populatePaths,
     tagOperations,
 } from '../helper/functions.js';
-import { serviceCategories } from '../config/servicecategories.js';
 import * as path from 'path';
 import fetch from 'node-fetch';
 import * as yaml from 'js-yaml';
@@ -39,14 +38,6 @@ const baseOpenApiDoc = {
 
 async function processService(serviceName, serviceData, serviceDir, debug){
     try {
-        // bypass problem service(s)
-        // if(['integrations', 'groupsmigration'].includes(serviceName)){
-        //     logger.info(`skipping service: ${serviceName}...`);
-        //     return;
-        // }
-
-        // create output folder for service
-        // createDir(path.join(outputDir, serviceCategory, serviceName), debug);
 
         // init openapi doc
         let openApiDoc = baseOpenApiDoc;
@@ -74,8 +65,6 @@ async function processService(serviceName, serviceData, serviceDir, debug){
         
         // populate securitySchemes
         debug ? logger.debug('populating securitySchemes..') : null;
-        
-        // console.log(serviceData.title);
         
         if(serviceData.auth){
             openApiDoc['components']['securitySchemes'] = populateSecuritySchemes(serviceData.auth);
@@ -122,22 +111,9 @@ export async function generateSpecs(options, rootDir) {
     const preferred = options.preferred;
     let outputDir = options.output;
     const service = options.service;
-    // const inputCategory = options.category;
 
     logger.info('generate called...');
     debug ? logger.debug({rootDir: rootDir, ...options}) : null;
-
-    // pre flight checks
-    // if(inputCategory != 'all'){
-    //     if(!serviceCategories[inputCategory]){
-    //         logger.error(`invalid category: ${inputCategory}`);
-    //         return;
-    //     }
-    //     if(service != 'all'){
-    //         logger.error(`category OR service can be specified NOT both`);
-    //         return;            
-    //     }
-    // }
 
     // get output directory
     if(outputDir.startsWith('/') || outputDir.startsWith('C:\\')){
@@ -161,18 +137,6 @@ export async function generateSpecs(options, rootDir) {
         services = rootData.items;
     }
 
-    // filter services by category or service if specified
-    // if(inputCategory != 'all'){
-    //     const categoryServices = serviceCategories[inputCategory];
-    //     services = services.filter(item => categoryServices.includes(item.name));
-    // } else if (service != 'all'){
-    //     services = services.filter(item => item.name == service);
-    //     if(services.length == 0){
-    //         logger.error(`service not found: ${service}`);
-    //         return;
-    //     }
-    // }
-
     logger.info(`processing: ${services.length} services...`);
     debug ? logger.debug(`services to be processed:`) : null;
     if(debug){
@@ -182,20 +146,44 @@ export async function generateSpecs(options, rootDir) {
     }
 
     // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-    createOrCleanDir(outputDir, debug);        
+    const cloudDir = path.join(outputDir, 'google');
+    const firebaseDir = path.join(outputDir, 'firebase');
+    
+    createOrCleanDir(outputDir, debug);
+    createOrCleanDir(cloudDir, debug);
+    createOrCleanDir(firebaseDir, debug);
+
     logger.info('Checking OAuth scopes...');
     for(let service of services){
         try {       
             logger.info(`checking ${service.name}...`);
             const svcResp = await fetch(service.discoveryRestUrl);
             const svcData = await svcResp.json();
+
+            let svcDir = path.join(cloudDir, service.name);
+
             // check if svcData.oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
             if(svcData['auth']){
                 if(svcData['auth']['oauth2']){
                     if(svcData['auth']['oauth2']['scopes']){
                         if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
                             logger.info(`service ${service.name} has required scope, processing...`);
-                            let svcDir = path.join(outputDir, service.name); 
+                            if([
+                                'firebase',
+                                'firebaseappcheck',
+                                'firebasedatabase',
+                                'firebasedynamiclinks',
+                                'firebasehosting',
+                                'firebaseml',
+                                'firebaserules',
+                                'firebasestorage',
+                                'toolresults',
+                            ].includes(service.name)){
+                                logger.info(`service ${service.name} is a firebase service, writing to firebase directory...`);
+                                svcDir = path.join(firebaseDir, service.name);
+                            } else {
+                                logger.info(`service ${service.name} is a cloud service, writing to cloud directory...`);
+                            }
                             createDir(svcDir, debug);
                             await processService(service.name, svcData, svcDir, debug)
                         }
