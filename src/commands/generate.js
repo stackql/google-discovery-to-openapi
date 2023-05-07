@@ -182,7 +182,7 @@ export async function generateSpecs(options, rootDir) {
                         if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
                             logger.info(`service ${service.name} has required scope, processing...`);
                             
-                            if(service.name.includes('firebase') || service.name.includes('toolresults')){
+                            if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
                                 logger.info(`service ${service.name} is a firebase service, writing to firebase directory...`);
                                 svcDir = path.join(firebaseDir, service.name);
                             } else {
