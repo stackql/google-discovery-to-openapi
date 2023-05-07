@@ -14,114 +14,117 @@ function cleanResourceName(service, resource, subresource) {
 }
   
 export function getResource(service, operationId){
+    const baseService = service.split('_')[0];
+        
     let resource = camelToSnake(operationId.split('.')[operationId.split('.').length - 2]);
     const action = operationId.split('.')[operationId.split('.').length - 1];
 
-    if (service === 'clouddebugger') {
+    // custom resource names for clouddebugger
+    if (baseService === 'clouddebugger') {
         const resTokens = [];
         for (const token of operationId.split('.').slice(1, -1)) {
         resTokens.push(token);
         }
         resource = resTokens.join('_');
-    } else if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
-        resource = cleanResourceName(service, resource, 'iam_policies');
-    } else if (action.startsWith('get') && action !== 'get') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(3)));
-    } else if (action.startsWith('list') && action !== 'list') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(4)));
-    } else if (action.startsWith('delete') && action !== 'delete') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
-    } else if (action.startsWith('batchGet') && action !== 'batchGet') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(8)));
-    } else if (action.startsWith('remove') && action !== 'remove') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
-    } else if (action.startsWith('create') && action !== 'create') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
-    } else if (action.startsWith('add') && action !== 'add') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(3)));
-    } else if (action.startsWith('fetch') && action !== 'fetch') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(5)));
-    } else if (action.startsWith('retrieve') && action !== 'retrieve') {
-        resource = cleanResourceName(service, resource, camelToSnake(action.slice(8)));
     }
 
-    if (service === 'compute') {
-        if (['backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
-        resource = resource + '_aggregated';
-        } else if (resource === 'instances' && action === 'bulkInsert') {
-        resource = resource + '_batch';
-        }
+    // general action based rules
+    if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
+        resource = cleanResourceName(baseService, resource, 'iam_policies');
+    } else if (action.startsWith('get') && action !== 'get') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(3)));
+    } else if (action.startsWith('list') && action !== 'list') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(4)));
+    } else if (action.startsWith('delete') && action !== 'delete') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
+    } else if (action.startsWith('batchGet') && action !== 'batchGet') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
+    } else if (action.startsWith('remove') && action !== 'remove') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
+    } else if (action.startsWith('create') && action !== 'create') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
+    } else if (action.startsWith('add') && action !== 'add') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(3)));
+    } else if (action.startsWith('fetch') && action !== 'fetch') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(5)));
+    } else if (action.startsWith('retrieve') && action !== 'retrieve') {
+        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
     }
-    
-    if (service === 'containeranalysis') {
-        if (['notes', 'occurrences'].includes(resource) && action === 'batchCreate') {
-        resource = resource + '_batch';
-        }
+
+    // service based exceptions
+    switch(baseService){
+        case 'compute':
+            if (['backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
+                resource = resource + '_aggregated';
+            } else if (resource === 'instances' && action === 'bulkInsert') {
+                resource = resource + '_batch';
+            }
+            break;
+        case 'containeranalysis':
+            if (['notes', 'occurrences'].includes(resource) && action === 'batchCreate') {
+                resource = resource + '_batch';
+            }
+            break;
+        case 'dataflow':
+            if (resource === 'jobs' && action === 'aggregated') {
+                resource = resource + '_aggregated';
+            }
+            break;
+        case 'documentai':
+            if (operationId.split('.')[1] === 'uiv1beta3') {
+                resource = resource + '_uiv1beta3';
+            }
+            break;
+        case 'videointelligence':
+            if (operationId.split('.')[1] === 'operations' && resource === 'operations') {
+                resource = 'long_running_operations';
+            }
+            break;
+        case 'osconfig':
+            if (resource === 'inventories' && action === 'list') {
+                resource = 'instance_inventories';
+            } else if (resource === 'reports' && action === 'get') {
+                resource = 'report';
+            } else if (resource === 'vulnerability_reports' && action === 'get') {
+                resource = 'vulnerability_report';
+            }
+            break;
+        case 'privateca':
+            if (action === 'fetch' && resource === 'certificate_authorities') {
+                resource = 'certificate_signing_request';
+            }
+            break;
+        case 'jobs':
+            if (resource === 'jobs' && action === 'batchCreate') {
+                resource = resource + '_batch';
+            }
+            break;
+        case 'serviceconsumermanagement':
+            if (resource === 'tenancy_units' && action === 'removeProject') {
+                resource = resource + '_projects';
+            }
+            break;
+        case 'serviceusage':
+            if (resource === 'services' && action === 'batchGet') {
+                resource = resource + '_batch';
+            }
+            break;
+        case 'spanner':
+            if (resource === 'sessions' && action === 'read') {
+                resource = 'session_info';
+            } else if (resource === 'sessions' && action === 'batchCreate') {
+                resource = resource + '_batch';
+            }
+            break;
     }
-    
-    if (service === 'dataflow') {
-        if (resource === 'jobs' && action === 'aggregated') {
-        resource = resource + '_aggregated';
-        }
-    }
-    
-    if (service === 'documentai') {
-        if (operationId.split('.')[1] === 'uiv1beta3') {
-        resource = resource + '_uiv1beta3';
-        }
-    }
-    
-    if (service === 'videointelligence') {
-        if (operationId.split('.')[1] === 'operations' && resource === 'operations') {
-        resource = 'long_running_operations';
-        }
-    }
-    
-    if (service === 'osconfig') {
-        if (resource === 'inventories' && action === 'list') {
-        resource = 'instance_inventories';
-        } else if (resource === 'reports' && action === 'get') {
-        resource = 'report';
-        } else if (resource === 'vulnerability_reports' && action === 'get') {
-        resource = 'vulnerability_report';
-        }
-    }
-    
-    if (service === 'privateca') {
-        if (action === 'fetch' && resource === 'certificate_authorities') {
-        resource = 'certificate_signing_request';
-        }
-    }
-    
-    if (service === 'jobs') {
-        if (resource === 'jobs' && action === 'batchCreate') {
-        resource = resource + '_batch';
-        }
-    }
-    
-    if (service === 'serviceconsumermanagement') {
-        if (resource === 'tenancy_units' && action === 'removeProject') {
-        resource = resource + '_projects';
-        }
-    }
-    
-    if (service === 'serviceusage') {
-        if (resource === 'services' && action === 'batchGet') {
-        resource = resource + '_batch';
-        }
-    }
-    
-    if (service === 'spanner') {
-        if (resource === 'sessions' && action === 'read') {
-        resource = 'session_info';
-        } else if (resource === 'sessions' && action === 'batchCreate') {
-        resource = resource + '_batch';
-        }
-    }
+   
     return [resource, action];
 }
   
 export function getSQLVerb(service, resource, action, operationId, httpVerb){
+    
+    const baseService = service.split('_')[0];
+
     let verb = 'exec';
     // action to sql verb mapping
     if (
@@ -142,10 +145,8 @@ export function getSQLVerb(service, resource, action, operationId, httpVerb){
         action.startsWith('aggregated') ||
         action.startsWith('batchGet') ||
         action.startsWith('fetch') ||
-        // action.startsWith('query') ||
         action.startsWith('read') ||
         action.startsWith('retrieve')
-        // || action.startsWith('search')
     ){
         verb = 'select';
         // aggregated scoped list 
@@ -177,7 +178,7 @@ export function getSQLVerb(service, resource, action, operationId, httpVerb){
     }
 
     // select exceptions
-    switch(service){
+    switch(baseService){
         case 'osconfig':
             if(resource == 'inventories'){
                 verb = 'exec';

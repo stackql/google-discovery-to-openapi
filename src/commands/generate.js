@@ -110,7 +110,7 @@ export async function generateSpecs(options, rootDir) {
     const debug = options.debug;
     const preferred = options.preferred;
     let outputDir = options.output;
-    const service = options.service;
+    const service = options.service; // TODO: implement single service processing option 
 
     logger.info('generate called...');
     debug ? logger.debug({rootDir: rootDir, ...options}) : null;
@@ -134,7 +134,15 @@ export async function generateSpecs(options, rootDir) {
         services = rootData.items.filter(item => item.preferred === true);
     } else {
         // TODO implement support for nonpreferred APIs
-        services = rootData.items;
+        let betaServices = [];
+        betaServices = rootData.items;
+        betaServices.forEach(service => {
+            // if service.id does not contain the words beta or alpha, delete the service
+            if(service.id.includes('beta') || service.id.includes('alpha')){
+                service.name = service.id.replace(':', '_');
+                services.push(service);
+            }
+        });
     }
 
     logger.info(`processing: ${services.length} services...`);
@@ -146,8 +154,13 @@ export async function generateSpecs(options, rootDir) {
     }
 
     // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-    const cloudDir = path.join(outputDir, 'google');
-    const firebaseDir = path.join(outputDir, 'firebase');
+    let cloudDir = path.join(outputDir, 'google');
+    let firebaseDir = path.join(outputDir, 'firebase');
+    
+    if(!preferred){
+        cloudDir = path.join(outputDir, 'google_beta');
+        firebaseDir = path.join(outputDir, 'firebase_beta');
+    }
     
     createOrCleanDir(outputDir, debug);
     createOrCleanDir(cloudDir, debug);
@@ -168,17 +181,8 @@ export async function generateSpecs(options, rootDir) {
                     if(svcData['auth']['oauth2']['scopes']){
                         if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
                             logger.info(`service ${service.name} has required scope, processing...`);
-                            if([
-                                'firebase',
-                                'firebaseappcheck',
-                                'firebasedatabase',
-                                'firebasedynamiclinks',
-                                'firebasehosting',
-                                'firebaseml',
-                                'firebaserules',
-                                'firebasestorage',
-                                'toolresults',
-                            ].includes(service.name)){
+                            
+                            if(service.name.includes('firebase') || service.name.includes('toolresults')){
                                 logger.info(`service ${service.name} is a firebase service, writing to firebase directory...`);
                                 svcDir = path.join(firebaseDir, service.name);
                             } else {
@@ -199,37 +203,5 @@ export async function generateSpecs(options, rootDir) {
 
     const runtime = Math.round(process.uptime() * 100) / 100;
     logger.info(`generate completed in ${runtime}s. ${services.length} files generated.`);
-    
-    // create output directories
-    // createOrCleanDir(outputDir, debug);
-    // let categorySubDirs = [];
-    // inputCategory === 'all' ? Object.keys(serviceCategories).forEach(category => {categorySubDirs.push(category)}) : categorySubDirs.push(inputCategory);
-    // debug ? logger.debug(`creating subdirs for: ${categorySubDirs}`) : null;
-    // for (let dir of categorySubDirs){
-    //     createDir(path.join(outputDir, dir), debug);
-    // }
-    
-    // lets go
-    // for(let service of services){
-    //     logger.info(`processing ${service.name}...`);
-    //     // get category for service
-    //     let svcCategory = 'lostandfound';
-    //     Object.keys(serviceCategories).forEach(cat => {
-    //         if(serviceCategories[cat].includes(service.name)){
-    //             svcCategory = cat;
-    //         }
-    //     });
-    //     svcCategory == 'lostandfound' ? logger.warn(`service ${service.name} not found in any category`) : null;
-    //     debug ? logger.debug(`service category: ${svcCategory}`) : null;
-    //     debug ? logger.debug(`getting data for ${service.name} from : ${service.discoveryRestUrl}`) : null;
-    //     try {       
-    //         const svcResp = await fetch(service.discoveryRestUrl);
-    //         const svcData = await svcResp.json();
-    //         await processService(service.name, svcCategory, svcData, outputDir, debug)
-    //     } catch (err) {
-    //         logger.error(err);
-    //     }
-    // }
-
-
+ 
 }
