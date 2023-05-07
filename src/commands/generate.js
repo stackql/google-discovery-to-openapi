@@ -154,12 +154,12 @@ export async function generateSpecs(options, rootDir) {
     }
 
     // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-    let cloudDir = path.join(outputDir, 'google');
-    let firebaseDir = path.join(outputDir, 'firebase');
+    let cloudDir = path.join(outputDir, 'google', 'v00.00.00000', 'services');
+    let firebaseDir = path.join(outputDir, 'firebase', 'v00.00.00000', 'services');
     
     if(!preferred){
-        cloudDir = path.join(outputDir, 'google_beta');
-        firebaseDir = path.join(outputDir, 'firebase_beta');
+        cloudDir = path.join(outputDir, 'google_beta', 'v00.00.00000', 'services');
+        firebaseDir = path.join(outputDir, 'firebase_beta', 'v00.00.00000', 'services');
     }
     
     createOrCleanDir(outputDir, debug);
