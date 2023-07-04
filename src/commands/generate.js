@@ -115,15 +115,15 @@ export async function generateSpecs(options, rootDir) {
     const debug = options.debug;
     const preferred = options.preferred;
     let outputDir = options.output;
-    const serviceToProcess = options.service;
+    const provider = options.provider;
     
-    // make sure serviceToProcess is one of 'googleapis', 'firebase', or 'googleadmin'
-    if(serviceToProcess !== 'googleapis' && serviceToProcess !== 'firebase' && serviceToProcess !== 'googleadmin'){
+    // make sure provider is one of 'googleapis', 'firebase', or 'googleadmin'
+    if(provider !== 'googleapis' && provider !== 'firebase' && provider !== 'googleadmin'){
         logger.error('invalid service specified, exiting...');
         return;
     }
 
-    logger.info(`generate called for ${serviceToProcess}...`);
+    logger.info(`generate called for ${provider}...`);
     debug ? logger.debug({rootDir: rootDir, ...options}) : null;
 
     // get output directory
@@ -136,7 +136,7 @@ export async function generateSpecs(options, rootDir) {
 
     // get root discovery document
     logger.info('Getting root discovery document...');
-    const rootResp = await fetch(rootDiscoveryUrl);
+    const rootResp = await fetch(rootDiscoveryUrl[provider]);
     const rootData = await rootResp.json();
 
     // filter services by preferred
@@ -165,10 +165,10 @@ export async function generateSpecs(options, rootDir) {
     }
 
     // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-    let specDir = path.join(outputDir, serviceToProcess, 'v00.00.00000', 'services');
+    let specDir = path.join(outputDir, provider, 'v00.00.00000', 'services');
     
     if(!preferred){
-        specDir = path.join(outputDir, serviceToProcess == 'googleapis' ? 'google_beta' : `${serviceToProcess}_beta`, 'v00.00.00000', 'services');
+        specDir = path.join(outputDir, provider == 'googleapis' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
     }
     
     createOrCleanDir(specDir, debug);
