@@ -16,7 +16,12 @@ import * as path from 'path';
 import fetch from 'node-fetch';
 import * as yaml from 'js-yaml';
 
-const rootDiscoveryUrl = 'https://discovery.googleapis.com/discovery/v1/apis';
+const rootDiscoveryUrl = {
+    googleapis: 'https://discovery.googleapis.com/discovery/v1/apis',
+    firebase: 'https://discovery.googleapis.com/discovery/v1/apis',
+    googleadmin: 'https://admin.googleapis.com/$discovery/rest?version=directory_v1'
+};
+
 const baseOpenApiDoc = {
     openapi: '3.1.0', 
     info: {
@@ -110,9 +115,15 @@ export async function generateSpecs(options, rootDir) {
     const debug = options.debug;
     const preferred = options.preferred;
     let outputDir = options.output;
-    const service = options.service; // TODO: implement single service processing option 
+    const serviceToProcess = options.service;
+    
+    // make sure serviceToProcess is one of 'googleapis', 'firebase', or 'googleadmin'
+    if(serviceToProcess !== 'googleapis' && serviceToProcess !== 'firebase' && serviceToProcess !== 'googleadmin'){
+        logger.error('invalid service specified, exiting...');
+        return;
+    }
 
-    logger.info('generate called...');
+    logger.info(`generate called for ${serviceToProcess}...`);
     debug ? logger.debug({rootDir: rootDir, ...options}) : null;
 
     // get output directory
@@ -154,17 +165,13 @@ export async function generateSpecs(options, rootDir) {
     }
 
     // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-    let cloudDir = path.join(outputDir, 'google', 'v00.00.00000', 'services');
-    let firebaseDir = path.join(outputDir, 'firebase', 'v00.00.00000', 'services');
+    let specDir = path.join(outputDir, serviceToProcess, 'v00.00.00000', 'services');
     
     if(!preferred){
-        cloudDir = path.join(outputDir, 'google_beta', 'v00.00.00000', 'services');
-        firebaseDir = path.join(outputDir, 'firebase_beta', 'v00.00.00000', 'services');
+        specDir = path.join(outputDir, serviceToProcess == 'googleapis' ? 'google_beta' : `${serviceToProcess}_beta`, 'v00.00.00000', 'services');
     }
     
-    createOrCleanDir(outputDir, debug);
-    createOrCleanDir(cloudDir, debug);
-    createOrCleanDir(firebaseDir, debug);
+    createOrCleanDir(specDir, debug);
 
     logger.info('Checking OAuth scopes...');
     for(let service of services){

@@ -82,25 +82,21 @@ function showUsage(command) {
 function parseArgumentsIntoOptions(args) {
     
     const command = args[2] || false;
+    const provider = args[3] || 'googleapis';
 
     // flag defaults
     let output = 'openapi';
-    let service = 'all';
     let preferred = true;
     let debug = false;
     let help = false;
 
     // iterate through supplied flags
-    const flags = args.slice(3);
+    const flags = args.slice(4);
     for(let i = 0; i < flags.length; i++) {
         switch(flags[i].split('=')[0]) {
             case '--output':
             case '-o':
                 output = flags[i].split('=')[1];
-                break;
-            case '--service':
-            case '-s':
-                service = flags[i].split('=')[1];
                 break;
             case '--nonpreferred':
             case '-n':
@@ -121,7 +117,7 @@ function parseArgumentsIntoOptions(args) {
 
     return {
         output: output,
-        service: service,
+        provider: provider,
         preferred: preferred,
         debug: debug,
         command: command,
