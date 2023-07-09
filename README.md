@@ -11,7 +11,7 @@ This script performs the following steps:
 2. Gets each respective service discovery document from the root discovery document (can be filtered to only fetch `preferred` service versions)
 3. Converts each service discovery document to an OpenAPI 3.x specification, written as a `yaml` file to the `openapi` folder
 
-The resultant OpenAPI service specifications can the be used with [@stackql/openapi-doc-util](https://www.npmjs.com/package/@stackql/openapi-doc-util) to generate [StackQL Google provider definitions](https://registry.stackql.io/providers/google/).
+The resultant OpenAPI service specifications can the be used with [`stackql/openapisaurus`](https://github.com/stackql/openapisaurus) to generate [StackQL Google provider definitions](https://registry.stackql.io/providers/google/).
 
 ## Usage
 
@@ -20,11 +20,13 @@ The resultant OpenAPI service specifications can the be used with [@stackql/open
 Mac/Linux:
 
 ```bash
-bin/google-discovery-to-openapi.mjs generate
+npm install
+bin/google-discovery-to-openapi.mjs generate googleapis
 ```
 
 Windows/PowerShell:
     
 ```powershell
+npm install
 node .\bin\google-discovery-to-openapi.mjs generate
 ```

@@ -12,12 +12,16 @@ import {
     populatePaths,
     tagOperations,
 } from '../helper/functions.js';
-import { serviceCategories } from '../config/servicecategories.js';
 import * as path from 'path';
 import fetch from 'node-fetch';
 import * as yaml from 'js-yaml';
 
-const rootDiscoveryUrl = 'https://discovery.googleapis.com/discovery/v1/apis';
+const rootDiscoveryUrl = {
+    googleapis: 'https://discovery.googleapis.com/discovery/v1/apis',
+    firebase: 'https://discovery.googleapis.com/discovery/v1/apis',
+    googleadmin: 'https://admin.googleapis.com/$discovery/rest?version=directory_v1'
+};
+
 const baseOpenApiDoc = {
     openapi: '3.1.0', 
     info: {
@@ -37,16 +41,8 @@ const baseOpenApiDoc = {
 *  service processing function
 */
 
-async function processService(serviceName, serviceCategory, serviceData, outputDir, debug){
+async function processService(serviceName, serviceData, serviceDir, debug){
     try {
-        // bypass problem service(s)
-        if(['integrations', 'groupsmigration'].includes(serviceName)){
-            logger.info(`skipping service: ${serviceName}...`);
-            return;
-        }
-
-        // create output folder for service
-        createDir(path.join(outputDir, serviceCategory, serviceName), debug);
 
         // init openapi doc
         let openApiDoc = baseOpenApiDoc;
@@ -74,8 +70,10 @@ async function processService(serviceName, serviceCategory, serviceData, outputD
         
         // populate securitySchemes
         debug ? logger.debug('populating securitySchemes..') : null;
+        
         if(serviceData.auth){
             openApiDoc['components']['securitySchemes'] = populateSecuritySchemes(serviceData.auth);
+            // console.log(serviceData.auth);
         }
     
         // populate schemas
@@ -101,7 +99,7 @@ async function processService(serviceName, serviceCategory, serviceData, outputD
 
         // write out openapi doc as yaml
         const openApiDocYaml = yaml.dump(openApiDoc);
-        await writeFile(path.join(outputDir, serviceCategory, serviceName, `${serviceName}.yaml`), openApiDocYaml, debug);
+        await writeFile(path.join(serviceDir, `${serviceName}.yaml`), openApiDocYaml, debug);
 
         return
     } catch (err) {
@@ -117,23 +115,16 @@ export async function generateSpecs(options, rootDir) {
     const debug = options.debug;
     const preferred = options.preferred;
     let outputDir = options.output;
-    const service = options.service;
-    const inputCategory = options.category;
-
-    logger.info('generate called...');
-    debug ? logger.debug({rootDir: rootDir, ...options}) : null;
-
-    // pre flight checks
-    if(inputCategory != 'all'){
-        if(!serviceCategories[inputCategory]){
-            logger.error(`invalid category: ${inputCategory}`);
-            return;
-        }
-        if(service != 'all'){
-            logger.error(`category OR service can be specified NOT both`);
-            return;            
-        }
+    const provider = options.provider;
+    
+    // make sure provider is one of 'googleapis', 'firebase', or 'googleadmin'
+    if(provider !== 'googleapis' && provider !== 'firebase' && provider !== 'googleadmin'){
+        logger.error('invalid service specified, exiting...');
+        return;
     }
+
+    logger.info(`generate called for ${provider}...`);
+    debug ? logger.debug({rootDir: rootDir, ...options}) : null;
 
     // get output directory
     if(outputDir.startsWith('/') || outputDir.startsWith('C:\\')){
@@ -143,72 +134,99 @@ export async function generateSpecs(options, rootDir) {
     }
     logger.info(`output directory: ${outputDir}`);
 
+    // create spec directory
+    let providerDir = path.join(outputDir, provider, 'v00.00.00000', 'services');
+    if(!preferred && provider != 'googleadmin'){
+        providerDir = path.join(outputDir, provider == 'googleapis' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
+    }
+    createOrCleanDir(providerDir, debug);
+
     // get root discovery document
     logger.info('Getting root discovery document...');
-    const rootResp = await fetch(rootDiscoveryUrl);
+    const rootResp = await fetch(rootDiscoveryUrl[provider]);
     const rootData = await rootResp.json();
 
-    // filter services by preferred
-    let services = [];
-    if(preferred){
-        services = rootData.items.filter(item => item.preferred === true);
-    } else {
-        // TODO implement support for nonpreferred APIs
-        services = rootData.items;
-    }
+    if(provider != 'googleadmin'){
+        //
+        // only for googleapis and firebase
+        //
 
-    // filter services by category or service if specified
-    if(inputCategory != 'all'){
-        const categoryServices = serviceCategories[inputCategory];
-        services = services.filter(item => categoryServices.includes(item.name));
-    } else if (service != 'all'){
-        services = services.filter(item => item.name == service);
-        if(services.length == 0){
-            logger.error(`service not found: ${service}`);
-            return;
+        // filter services by preferred
+        let services = [];
+        if(preferred){
+            services = rootData.items.filter(item => item.preferred === true);
+        } else {
+            // TODO implement support for nonpreferred APIs
+            let betaServices = [];
+            betaServices = rootData.items;
+            betaServices.forEach(service => {
+                // if service.id does not contain the words beta or alpha, delete the service
+                if(service.id.includes('beta') || service.id.includes('alpha')){
+                    service.name = service.id.replace(':', '_');
+                    services.push(service);
+                }
+            });
         }
-    }
 
-    logger.info(`processing: ${services.length} services...`);
-    debug ? logger.debug(`services to be processed:`) : null;
-    if(debug){
-        services.forEach(service => {
-            logger.debug(service.name);
-        });
-    }
- 
-    // create output category subdirectories
-    createOrCleanDir(outputDir, debug);
-    let categorySubDirs = [];
-    inputCategory === 'all' ? Object.keys(serviceCategories).forEach(category => {categorySubDirs.push(category)}) : categorySubDirs.push(inputCategory);
-    debug ? logger.debug(`creating subdirs for: ${categorySubDirs}`) : null;
-    for (let dir of categorySubDirs){
-        createDir(path.join(outputDir, dir), debug);
-    }
-    
-    // lets go
-    for(let service of services){
-        logger.info(`processing ${service.name}...`);
-        // get category for service
-        let svcCategory = 'lostandfound';
-        Object.keys(serviceCategories).forEach(cat => {
-            if(serviceCategories[cat].includes(service.name)){
-                svcCategory = cat;
+        logger.info(`processing: ${services.length} services...`);
+        debug ? logger.debug(`services to be processed:`) : null;
+        if(debug){
+            services.forEach(service => {
+                logger.debug(service.name);
+            });
+        }
+
+        // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
+        logger.info('Checking OAuth scopes...');
+        for(let service of services){
+            try {       
+                logger.info(`checking ${service.name}...`);
+                const svcResp = await fetch(service.discoveryRestUrl);
+                const svcData = await svcResp.json();
+
+                let svcDir = path.join(providerDir, service.name);
+
+                // check if svcData.oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
+                if(svcData['auth']){
+                    if(svcData['auth']['oauth2']){
+                        if(svcData['auth']['oauth2']['scopes']){
+                            if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
+                                if(provider === 'firebase'){
+                                    if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                        logger.info(`processing service ${service.name} ...`);
+                                        createDir(svcDir, debug);
+                                        await processService(service.name, svcData, svcDir, debug);
+                                    }
+                                } else {
+                                    logger.info(`processing service ${service.name} ...`);
+                                    createDir(svcDir, debug);
+                                    await processService(service.name, svcData, svcDir, debug);                                    
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    logger.info(`service ${service.name} has no auth, skipping...`);
+                }
+            } catch (err) {
+                logger.error(err);
             }
-        });
-        svcCategory == 'lostandfound' ? logger.warn(`service ${service.name} not found in any category`) : null;
-        debug ? logger.debug(`service category: ${svcCategory}`) : null;
-        debug ? logger.debug(`getting data for ${service.name} from : ${service.discoveryRestUrl}`) : null;
-        try {       
-            const svcResp = await fetch(service.discoveryRestUrl);
-            const svcData = await svcResp.json();
-            await processService(service.name, svcCategory, svcData, outputDir, debug)
-        } catch (err) {
-            logger.error(err);
         }
+
+    } else {
+        //
+        // googleadmin
+        //
+
+        logger.info(`processing googleadmin.directory...`);
+
+        let svcDir = path.join(providerDir, 'directory');
+        createDir(svcDir, debug);
+        await processService('directory', rootData, svcDir, debug);
+
     }
 
     const runtime = Math.round(process.uptime() * 100) / 100;
     logger.info(`generate completed in ${runtime}s. ${services.length} files generated.`);
-
+ 
 }

@@ -13,7 +13,7 @@ const cmdUsage = [
   },
   {
     header: 'Synopsis',
-    content: `$ ${programName} <command> [<outputDir>] [<options>]`
+    content: `$ ${programName} <command> [<arguments>] [<flags>]`
   },
   {
     header: 'Command List',
@@ -30,7 +30,7 @@ const generateUsage = [
   },
   {
     header: 'Synopsis',
-    content: `$ ${programName} generate [<flags>]`
+    content: `$ ${programName} generate [<provider (defaults to googleapis)>] [<flags>]`
   },
   {
       header: 'Flags',
@@ -42,23 +42,11 @@ const generateUsage = [
             description: 'specify the output path for generated OpenAPI documents. (defaults to "openapi")',
         },
         {
-            name: 'service',
-            alias: 's',
-            type: String,
-            description: 'specify the service you want to generate an OpenAPI spec for. (defaults to "all")',
-        },
-        {
             name: 'nonpreferred',
             alias: 'n',
             type: Boolean,
             description: 'use nonpreferred apis. (defaults to false)',
         },
-        {
-            name: 'category',
-            alias: 'c',
-            type: String,
-            description: 'generate specs for a specific service category or all service categories. (defaults to "all")',
-        },        
         {
           name: 'debug',
           alias: 'd',
@@ -88,35 +76,26 @@ function showUsage(command) {
 function parseArgumentsIntoOptions(args) {
     
     const command = args[2] || false;
+    const provider = args[3] || 'googleapis';
 
     // flag defaults
     let output = 'openapi';
-    let service = 'all';
     let preferred = true;
-    let category = 'all';
     let debug = false;
     let help = false;
 
     // iterate through supplied flags
-    const flags = args.slice(3);
+    const flags = args.slice(4);
     for(let i = 0; i < flags.length; i++) {
         switch(flags[i].split('=')[0]) {
             case '--output':
             case '-o':
                 output = flags[i].split('=')[1];
                 break;
-            case '--service':
-            case '-s':
-                service = flags[i].split('=')[1];
-                break;
             case '--nonpreferred':
             case '-n':
                 preferred = false;
                 break;
-            case '--category':
-            case '-c':
-                category = flags[i].split('=')[1];
-                break;                    
             case '--debug':
             case '-d':
                 debug = true;
@@ -132,9 +111,8 @@ function parseArgumentsIntoOptions(args) {
 
     return {
         output: output,
-        service: service,
-        preferred: true, // TODO: implement nonpreferred
-        category: category,
+        provider: provider,
+        preferred: preferred,
         debug: debug,
         command: command,
         help: help,

@@ -22,6 +22,6 @@
     "js-yaml": "^4.1.0",
     "node-fetch": "^3.3.0",
     "pino": "^8.8.0",
-    "pino-pretty": "^9.1.1"
+    "pino-pretty": "^10.0.0"
   }
 }

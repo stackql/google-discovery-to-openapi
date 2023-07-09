@@ -14,7 +14,7 @@ export async function writeFile(path, data, debug){
 export async function createDir(dir, debug){
     debug ? logger.debug(`creating ${dir}...`): null;
     try {
-        fs.mkdirSync(dir);
+        fs.mkdirSync(dir, { recursive: true });
         return true;
     } catch (err) {
         logger.error(err);

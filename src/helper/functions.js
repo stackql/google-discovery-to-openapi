@@ -3,12 +3,13 @@ import {
   getResource,
   getSQLVerb,
 } from '../config/tagging.js';
+import { isParamRequired } from './reqparams.js';
 
 /*
 *  helper functions 
 */
 
-function getOpParams(method, paramOrder, path) {
+function getOpParams(method, paramOrder, path, verb) {
     const inParams = method['parameters'];
     const paramList = [];
     for (const param of paramOrder) {
@@ -41,6 +42,11 @@ function getOpParams(method, paramOrder, path) {
         finalParam['name'] = param['name'];
         if ('required' in param) {
           finalParam['required'] = param['required'];
+        } else {
+          // check if required
+          if(isParamRequired(path, param, verb)) {
+            finalParam['required'] = true;
+          }
         }
         finalParam['schema'] = { type: param['type'] };
         paramListFinal.push(finalParam);
@@ -140,7 +146,7 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
       }
       const parameterOrder = 'parameterOrder' in methodsObj[method] ? methodsObj[method]['parameterOrder'] : [];
       if ('parameters' in methodsObj[method]) {
-        pathsObj[path][verb]['parameters'] = getOpParams(methodsObj[method], parameterOrder, path);
+        pathsObj[path][verb]['parameters'] = getOpParams(methodsObj[method], parameterOrder, path, verb);
       }
     }
     return pathsObj;
