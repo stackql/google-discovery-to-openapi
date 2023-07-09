@@ -13,7 +13,7 @@ const cmdUsage = [
   },
   {
     header: 'Synopsis',
-    content: `$ ${programName} <command> [<outputDir>] [<options>]`
+    content: `$ ${programName} <command> [<arguments>] [<flags>]`
   },
   {
     header: 'Command List',
@@ -30,7 +30,7 @@ const generateUsage = [
   },
   {
     header: 'Synopsis',
-    content: `$ ${programName} generate [<flags>]`
+    content: `$ ${programName} generate [<provider (defaults to googleapis)>] [<flags>]`
   },
   {
       header: 'Flags',
@@ -40,12 +40,6 @@ const generateUsage = [
             alias: 'o',
             type: String,
             description: 'specify the output path for generated OpenAPI documents. (defaults to "openapi")',
-        },
-        {
-            name: 'service',
-            alias: 's',
-            type: String,
-            description: 'specify the service you want to generate an OpenAPI spec for. (defaults to "all")',
         },
         {
             name: 'nonpreferred',

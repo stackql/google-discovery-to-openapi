@@ -21,7 +21,7 @@ Mac/Linux:
 
 ```bash
 npm install
-bin/google-discovery-to-openapi.mjs generate
+bin/google-discovery-to-openapi.mjs generate googleapis
 ```
 
 Windows/PowerShell:

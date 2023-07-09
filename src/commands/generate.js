@@ -134,78 +134,96 @@ export async function generateSpecs(options, rootDir) {
     }
     logger.info(`output directory: ${outputDir}`);
 
+    // create spec directory
+    let providerDir = path.join(outputDir, provider, 'v00.00.00000', 'services');
+    if(!preferred && provider != 'googleadmin'){
+        providerDir = path.join(outputDir, provider == 'googleapis' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
+    }
+    createOrCleanDir(providerDir, debug);
+
     // get root discovery document
     logger.info('Getting root discovery document...');
     const rootResp = await fetch(rootDiscoveryUrl[provider]);
     const rootData = await rootResp.json();
 
-    // filter services by preferred
-    let services = [];
-    if(preferred){
-        services = rootData.items.filter(item => item.preferred === true);
-    } else {
-        // TODO implement support for nonpreferred APIs
-        let betaServices = [];
-        betaServices = rootData.items;
-        betaServices.forEach(service => {
-            // if service.id does not contain the words beta or alpha, delete the service
-            if(service.id.includes('beta') || service.id.includes('alpha')){
-                service.name = service.id.replace(':', '_');
-                services.push(service);
-            }
-        });
-    }
+    if(provider != 'googleadmin'){
+        //
+        // only for googleapis and firebase
+        //
 
-    logger.info(`processing: ${services.length} services...`);
-    debug ? logger.debug(`services to be processed:`) : null;
-    if(debug){
-        services.forEach(service => {
-            logger.debug(service.name);
-        });
-    }
+        // filter services by preferred
+        let services = [];
+        if(preferred){
+            services = rootData.items.filter(item => item.preferred === true);
+        } else {
+            // TODO implement support for nonpreferred APIs
+            let betaServices = [];
+            betaServices = rootData.items;
+            betaServices.forEach(service => {
+                // if service.id does not contain the words beta or alpha, delete the service
+                if(service.id.includes('beta') || service.id.includes('alpha')){
+                    service.name = service.id.replace(':', '_');
+                    services.push(service);
+                }
+            });
+        }
 
-    // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-    let specDir = path.join(outputDir, provider, 'v00.00.00000', 'services');
-    
-    if(!preferred){
-        specDir = path.join(outputDir, provider == 'googleapis' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
-    }
-    
-    createOrCleanDir(specDir, debug);
+        logger.info(`processing: ${services.length} services...`);
+        debug ? logger.debug(`services to be processed:`) : null;
+        if(debug){
+            services.forEach(service => {
+                logger.debug(service.name);
+            });
+        }
 
-    logger.info('Checking OAuth scopes...');
-    for(let service of services){
-        try {       
-            logger.info(`checking ${service.name}...`);
-            const svcResp = await fetch(service.discoveryRestUrl);
-            const svcData = await svcResp.json();
+        // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
+        logger.info('Checking OAuth scopes...');
+        for(let service of services){
+            try {       
+                logger.info(`checking ${service.name}...`);
+                const svcResp = await fetch(service.discoveryRestUrl);
+                const svcData = await svcResp.json();
 
-            let svcDir = path.join(cloudDir, service.name);
+                let svcDir = path.join(providerDir, service.name);
 
-            // check if svcData.oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-            if(svcData['auth']){
-                if(svcData['auth']['oauth2']){
-                    if(svcData['auth']['oauth2']['scopes']){
-                        if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
-                            logger.info(`service ${service.name} has required scope, processing...`);
-                            
-                            if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
-                                logger.info(`service ${service.name} is a firebase service, writing to firebase directory...`);
-                                svcDir = path.join(firebaseDir, service.name);
-                            } else {
-                                logger.info(`service ${service.name} is a cloud service, writing to cloud directory...`);
+                // check if svcData.oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
+                if(svcData['auth']){
+                    if(svcData['auth']['oauth2']){
+                        if(svcData['auth']['oauth2']['scopes']){
+                            if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
+                                if(provider === 'firebase'){
+                                    if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                        logger.info(`processing service ${service.name} ...`);
+                                        createDir(svcDir, debug);
+                                        await processService(service.name, svcData, svcDir, debug);
+                                    }
+                                } else {
+                                    logger.info(`processing service ${service.name} ...`);
+                                    createDir(svcDir, debug);
+                                    await processService(service.name, svcData, svcDir, debug);                                    
+                                }
                             }
-                            createDir(svcDir, debug);
-                            await processService(service.name, svcData, svcDir, debug)
                         }
                     }
+                } else {
+                    logger.info(`service ${service.name} has no auth, skipping...`);
                 }
-            } else {
-                logger.info(`service ${service.name} has no auth, skipping...`);
+            } catch (err) {
+                logger.error(err);
             }
-        } catch (err) {
-            logger.error(err);
         }
+
+    } else {
+        //
+        // googleadmin
+        //
+
+        logger.info(`processing googleadmin.directory...`);
+
+        let svcDir = path.join(providerDir, 'directory');
+        createDir(svcDir, debug);
+        await processService('directory', rootData, svcDir, debug);
+
     }
 
     const runtime = Math.round(process.uptime() * 100) / 100;
