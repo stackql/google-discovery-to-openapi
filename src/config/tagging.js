@@ -51,10 +51,13 @@ export function getResource(service, operationId){
         resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
     }
 
+    // replace double underscores in resource name with single underscore
+    resource = resource.replace(/__/g, '_');
+
     // service based exceptions
     switch(baseService){
         case 'compute':
-            if (['backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
+            if (['instance_templates', 'backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
                 resource = resource + '_aggregated';
             } else if (resource === 'instances' && action === 'bulkInsert') {
                 resource = resource + '_batch';

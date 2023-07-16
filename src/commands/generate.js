@@ -17,7 +17,7 @@ import fetch from 'node-fetch';
 import * as yaml from 'js-yaml';
 
 const rootDiscoveryUrl = {
-    googleapis: 'https://discovery.googleapis.com/discovery/v1/apis',
+    'googleapis.com': 'https://discovery.googleapis.com/discovery/v1/apis',
     firebase: 'https://discovery.googleapis.com/discovery/v1/apis',
     googleadmin: 'https://admin.googleapis.com/$discovery/rest?version=directory_v1'
 };
@@ -117,8 +117,8 @@ export async function generateSpecs(options, rootDir) {
     let outputDir = options.output;
     const provider = options.provider;
     
-    // make sure provider is one of 'googleapis', 'firebase', or 'googleadmin'
-    if(provider !== 'googleapis' && provider !== 'firebase' && provider !== 'googleadmin'){
+    // make sure provider is one of 'googleapis.com', 'firebase', or 'googleadmin'
+    if(provider !== 'googleapis.com' && provider !== 'firebase' && provider !== 'googleadmin'){
         logger.error('invalid service specified, exiting...');
         return;
     }
@@ -137,7 +137,7 @@ export async function generateSpecs(options, rootDir) {
     // create spec directory
     let providerDir = path.join(outputDir, provider, 'v00.00.00000', 'services');
     if(!preferred && provider != 'googleadmin'){
-        providerDir = path.join(outputDir, provider == 'googleapis' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
+        providerDir = path.join(outputDir, provider == 'googleapis.com' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
     }
     createOrCleanDir(providerDir, debug);
 
@@ -148,7 +148,7 @@ export async function generateSpecs(options, rootDir) {
 
     if(provider != 'googleadmin'){
         //
-        // only for googleapis and firebase
+        // only for googleapis.com and firebase
         //
 
         // filter services by preferred
