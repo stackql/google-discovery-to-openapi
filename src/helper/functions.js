@@ -156,14 +156,14 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
 *  exported functions 
 */
 
-export function tagOperations(openapiDoc, service) {
+export function tagOperations(openapiDoc, service, debug) {
   for (const path of Object.keys(openapiDoc.paths)) {
     for (const verb of Object.keys(openapiDoc.paths[path])) {
       if (verb !== 'parameters') {    
         const operationId = openapiDoc.paths[path][verb].operationId;
-        const [resource, action] = getResource(service, operationId);
+        const [resource, action] = getResource(service, operationId, debug);
         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
-        openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, verb);
+        openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, verb, debug);
       }
     }
   }

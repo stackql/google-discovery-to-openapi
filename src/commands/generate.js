@@ -95,7 +95,7 @@ async function processService(serviceName, serviceData, serviceDir, debug){
 
         // tag operations
         debug ? logger.debug('tagging operations..') : null;
-        openApiDoc = tagOperations(openApiDoc, serviceName);
+        openApiDoc = tagOperations(openApiDoc, serviceName, debug);
 
         // write out openapi doc as yaml
         const openApiDocYaml = yaml.dump(openApiDoc);
@@ -193,12 +193,16 @@ export async function generateSpecs(options, rootDir) {
                             if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
                                 if(provider === 'firebase'){
                                     if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                        logger.info(`--------------------------------------`);
                                         logger.info(`processing service ${service.name} ...`);
+                                        logger.info(`--------------------------------------`);
                                         createDir(svcDir, debug);
                                         await processService(service.name, svcData, svcDir, debug);
                                     }
                                 } else {
+                                    logger.info(`--------------------------------------`);
                                     logger.info(`processing service ${service.name} ...`);
+                                    logger.info(`--------------------------------------`);
                                     createDir(svcDir, debug);
                                     await processService(service.name, svcData, svcDir, debug);                                    
                                 }

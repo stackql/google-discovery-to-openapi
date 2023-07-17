@@ -1,3 +1,5 @@
+import { logger } from '../util/logging.js';
+
 function camelToSnake(name) {
     name = name.replace(/([A-Z])/g, function(match) {
       return "_" + match;
@@ -12,15 +14,16 @@ function cleanResourceName(service, resource, subresource) {
       return resource + '_' + subresource;
     }
 }
-  
-export function getResource(service, operationId){
-    const baseService = service.split('_')[0];
-        
+
+export function getResource(service, operationId, debug){
+
+    // debug ? logger.debug(`processing ${operationId} for service : ${service}`) : null;
+
     let resource = camelToSnake(operationId.split('.')[operationId.split('.').length - 2]);
     const action = operationId.split('.')[operationId.split('.').length - 1];
 
     // custom resource names for clouddebugger
-    if (baseService === 'clouddebugger') {
+    if (service === 'clouddebugger') {
         const resTokens = [];
         for (const token of operationId.split('.').slice(1, -1)) {
         resTokens.push(token);
@@ -30,32 +33,32 @@ export function getResource(service, operationId){
 
     // general action based rules
     if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
-        resource = cleanResourceName(baseService, resource, 'iam_policies');
+        resource = cleanResourceName(service, resource, 'iam_policies');
     } else if (action.startsWith('get') && action !== 'get') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(3)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(3)));
     } else if (action.startsWith('list') && action !== 'list') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(4)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(4)));
     } else if (action.startsWith('delete') && action !== 'delete') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
     } else if (action.startsWith('batchGet') && action !== 'batchGet') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(8)));
     } else if (action.startsWith('remove') && action !== 'remove') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
     } else if (action.startsWith('create') && action !== 'create') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(6)));
     } else if (action.startsWith('add') && action !== 'add') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(3)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(3)));
     } else if (action.startsWith('fetch') && action !== 'fetch') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(5)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(5)));
     } else if (action.startsWith('retrieve') && action !== 'retrieve') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
+        resource = cleanResourceName(service, resource, camelToSnake(action.slice(8)));
     }
 
     // replace double underscores in resource name with single underscore
     resource = resource.replace(/__/g, '_');
 
     // service based exceptions
-    switch(baseService){
+    switch(service){
         case 'compute':
             if (['instance_templates', 'backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
                 resource = resource + '_aggregated';
@@ -78,9 +81,23 @@ export function getResource(service, operationId){
                 resource = resource + '_uiv1beta3';
             }
             break;
-        case 'videointelligence':
-            if (operationId.split('.')[1] === 'operations' && resource === 'operations') {
-                resource = 'long_running_operations';
+        case 'logging':
+            if(operationId == 'logging.organizations.locations.list' || operationId == 'logging.organizations.locations.get'){
+                resource = 'organization_locations';
+            } else if(operationId == 'logging.folders.locations.list' || operationId == 'logging.folders.locations.get'){    
+                resource = 'folder_locations';
+            } else if(operationId == 'logging.billingAccounts.locations.list' || operationId == 'logging.billingAccounts.locations.get'){
+                resource = 'billing_account_locations';                
+            } else if(operationId == 'logging.projects.locations.list' || operationId == 'logging.projects.locations.get'){
+                resource = 'project_locations';
+            } else if(operationId == 'logging.organizations.locations.operations.get' || operationId == 'logging.organizations.operations.list'){
+                resource = 'organization_location_operations';
+            } else if(operationId == 'logging.folders.locations.operations.get' || operationId == 'logging.folders.operations.list'){
+                resource = 'folder_location_operations';
+            } else if(operationId == 'logging.billingAccounts.locations.operations.get' || operationId == 'logging.billingAccounts.locations.operations.list'){
+                resource = 'billing_account_location_operations';
+            } else if(operationId == 'logging.projects.locations.operations.get' || operationId == 'logging.projects.locations.operations.list'){
+                resource = 'project_location_operations';
             }
             break;
         case 'osconfig':
@@ -102,6 +119,28 @@ export function getResource(service, operationId){
                 resource = resource + '_batch';
             }
             break;
+        case 'prod_tt_sasportal':
+            if ([
+                'prod_tt_sasportal.customers.nodes.move',
+                'prod_tt_sasportal.customers.nodes.list',
+                'prod_tt_sasportal.customers.nodes.create',
+                'prod_tt_sasportal.customers.nodes.patch',
+                'prod_tt_sasportal.customers.nodes.get',
+                'prod_tt_sasportal.customers.nodes.delete',
+            ].includes(operationId)) {
+                resource = 'customer_nodes';
+            } else if([
+                'prod_tt_sasportal.customers.nodes.nodes.list',
+                'prod_tt_sasportal.customers.nodes.nodes.create',
+            ].includes(operationId)){
+                resource = 'customer_child_nodes';
+            } else if([
+                'prod_tt_sasportal.nodes.nodes.nodes.list',
+                'prod_tt_sasportal.nodes.nodes.nodes.create',
+            ].includes(operationId)){
+                resource = 'child_nodes';
+            }
+            break;
         case 'serviceconsumermanagement':
             if (resource === 'tenancy_units' && action === 'removeProject') {
                 resource = resource + '_projects';
@@ -119,15 +158,17 @@ export function getResource(service, operationId){
                 resource = resource + '_batch';
             }
             break;
+        case 'videointelligence':
+            if (operationId.split('.')[1] === 'operations' && resource === 'operations') {
+                resource = 'long_running_operations';
+            }
+            break;
     }
-   
     return [resource, action];
 }
   
-export function getSQLVerb(service, resource, action, operationId, httpVerb){
+export function getSQLVerb(service, resource, action, operationId, httpVerb, debug){
     
-    const baseService = service.split('_')[0];
-
     let verb = 'exec';
     // action to sql verb mapping
     if (
@@ -181,7 +222,7 @@ export function getSQLVerb(service, resource, action, operationId, httpVerb){
     }
 
     // select exceptions
-    switch(baseService){
+    switch(service){
         case 'osconfig':
             if(resource == 'inventories'){
                 verb = 'exec';
@@ -209,6 +250,8 @@ export function getSQLVerb(service, resource, action, operationId, httpVerb){
                 'compute.healthChecks.aggregatedList',
                 'compute.urlMaps.aggregatedList',
                 'compute.securityPolicies.aggregatedList',
+                'compute.regionDisks.bulkInsert',
+                'compute.disks.bulkInsert',
             ].includes(operationId)){
                 verb = 'exec';
             }
@@ -263,10 +306,16 @@ export function getSQLVerb(service, resource, action, operationId, httpVerb){
                 verb = 'exec';
             }
             break;
+        case 'logging':
+            if([
+                'logging.locations.operations.get',
+                'logging.locations.get',
+            ].includes(operationId)){
+                verb = 'exec';
+            }
+            break;
         case 'prod_tt_sasportal':
             if([
-                'prod_tt_sasportal.customers.nodes.get',
-                'prod_tt_sasportal.nodes.nodes.get',
                 'prod_tt_sasportal.nodes.get',
             ].includes(operationId)){
                 verb = 'exec';
