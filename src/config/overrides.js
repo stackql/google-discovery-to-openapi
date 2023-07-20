@@ -1,0 +1,115 @@
+export const resourceNameOverrides = {
+    compute: {
+        'compute.securityPolicies.aggregatedList' : 'security_policies_aggregated',
+        'compute.backendServices.aggregatedList' : 'backend_services_aggregated',
+        'compute.healthChecks.aggregatedList' : 'health_checks_aggregated',
+        'compute.sslCertificates.aggregatedList' : 'ssl_certificates_aggregated',
+        'compute.urlMaps.aggregatedList' : 'url_maps_aggregated',
+        'compute.targetHttpProxies.aggregatedList' : 'target_http_proxies_aggregated',
+        'compute.globalOperations.aggregatedList' : 'global_operations_aggregated',
+        'compute.targetHttpsProxies.aggregatedList' : 'target_https_proxies_aggregated',
+        // 'compute.instanceTemplates.aggregatedList' : 'instance_templates_aggregated',        
+    },
+    // containeranalysis: {
+    //     'containeranalysis.projects.occurrences.batchCreate' : 'occurrences_batch',
+    //     'containeranalysis.projects.notes.batchCreate' : 'notes_batch',
+    // },
+    dataflow: {
+        'dataflow.projects.jobs.aggregated' : 'jobs_aggregated',
+    },
+    // jobs: {
+    //     'jobs.projects.tenants.jobs.batchCreate' : 'jobs_batch',
+    // },
+    // logging: {
+    //     'logging.billingAccounts.locations.list' : 'billing_account_locations',
+    //     'logging.billingAccounts.locations.get' : 'billing_account_locations',
+    //     'logging.billingAccounts.locations.operations.get' : 'billing_account_location_operations',
+    //     'logging.billingAccounts.locations.operations.list' : 'billing_account_location_operations',
+    //     'logging.projects.locations.list' : 'project_locations',
+    //     'logging.projects.locations.get' : 'project_locations',
+    //     'logging.projects.locations.operations.get' : 'project_location_operations',
+    //     'logging.projects.locations.operations.list' : 'project_location_operations',
+    //     'logging.folders.locations.operations.get' : 'folder_location_operations',
+    //     'logging.folders.locations.get' : 'folder_locations',
+    //     'logging.folders.locations.list' : 'folder_locations',
+    //     'logging.organizations.locations.operations.get' : 'organization_location_operations',
+    //     'logging.organizations.locations.list' : 'organization_locations',
+    //     'logging.organizations.locations.get' : 'organization_locations',
+    //     'logging.locations.get' : 'location',
+    // },   
+    osconfig: {
+        // 'osconfig.projects.locations.instances.inventories.list' : 'instance_inventories',
+        'osconfig.projects.locations.instances.vulnerabilityReports.get' : 'vulnerability_report',
+        'osconfig.projects.locations.instances.osPolicyAssignments.reports.get' : 'report',
+    },   
+    privateca: {
+        'privateca.projects.locations.caPools.certificateAuthorities.fetch' : 'certificate_signing_request',
+    },
+    // prod_tt_sasportal: {
+    //     'prod_tt_sasportal.customers.nodes.nodes.list' : 'customer_child_nodes',
+    //     'prod_tt_sasportal.customers.nodes.nodes.create' : 'customer_child_nodes',
+    //     'prod_tt_sasportal.customers.nodes.get' : 'customer_nodes',
+    //     'prod_tt_sasportal.customers.nodes.delete' : 'customer_nodes',
+    //     'prod_tt_sasportal.customers.nodes.patch' : 'customer_nodes',
+    //     'prod_tt_sasportal.customers.nodes.create' : 'customer_nodes',
+    //     'prod_tt_sasportal.customers.nodes.list' : 'customer_nodes',
+    //     'prod_tt_sasportal.customers.nodes.move' : 'customer_nodes',
+    //     'prod_tt_sasportal.nodes.nodes.nodes.create' : 'child_nodes',
+    //     'prod_tt_sasportal.nodes.nodes.nodes.list' : 'child_nodes',
+    // },
+    spanner: {
+        // 'spanner.projects.instances.databases.sessions.batchCreate' : 'sessions_batch',
+        'spanner.projects.instances.databases.sessions.read' : 'session_info',
+    },
+    videointelligence: {
+        'videointelligence.operations.projects.locations.operations.cancel' : 'long_running_operations',
+        'videointelligence.operations.projects.locations.operations.delete' : 'long_running_operations',
+        'videointelligence.operations.projects.locations.operations.get' : 'long_running_operations',
+    },   
+};
+
+export const sqlVerbOverrides = {
+    compute: {
+        // 'compute.targetHttpsProxies.aggregatedList' : 'exec',
+        // 'compute.sslPolicies.aggregatedList' : 'exec',
+        // 'compute.securityPolicies.aggregatedList' : 'exec',
+        // 'compute.targetTcpProxies.aggregatedList' : 'exec',
+        // 'compute.urlMaps.aggregatedList' : 'exec',
+        // 'compute.globalOperations.aggregatedList' : 'exec',
+        // 'compute.healthChecks.aggregatedList' : 'exec',
+        // 'compute.backendServices.aggregatedList' : 'exec',
+        // 'compute.sslCertificates.aggregatedList' : 'exec',
+        // 'compute.targetHttpProxies.aggregatedList' : 'exec',
+        // 'compute.autoscalers.aggregatedList' : 'exec',
+        // 'compute.diskTypes.aggregatedList' : 'exec',
+        // 'compute.instanceTemplates.aggregatedList' : 'exec',
+        // 'compute.addresses.aggregatedList': 'exec',
+        // 'compute.forwardingRules.aggregatedList': 'exec', 
+        // 'compute.acceleratorTypes.aggregatedList': 'exec', 
+        'compute.instances.bulkInsert' : 'exec',
+        'compute.regionDisks.bulkInsert' : 'exec',
+        'compute.disks.bulkInsert' : 'exec',
+    },
+    dataform: {
+        'dataform.projects.locations.repositories.workspaces.readFile' : 'exec',        
+    },
+    documentai: {
+        'documentai.projects.locations.fetchProcessorTypes' : 'exec',        
+    },
+    // identitytoolkit: {
+    //     'identitytoolkit.relyingparty.getPublicKeys' : 'exec',
+    // },
+    // osconfig: {
+    //     'osconfig.projects.locations.instances.inventories.get' : 'exec',
+    // },
+    // prod_tt_sasportal: {
+    //     'prod_tt_sasportal.nodes.get' : 'exec',
+    //     'prod_tt_sasportal.policies.get' : 'select',
+    // },
+    // sasportal: {
+    //     'sasportal.policies.get' : 'select',
+    //     'sasportal.customers.nodes.get' : 'exec',
+    //     'sasportal.nodes.get' : 'exec',
+    //     'sasportal.nodes.nodes.get' : 'exec',
+    // },
+};

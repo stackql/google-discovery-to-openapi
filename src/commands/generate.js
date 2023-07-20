@@ -104,6 +104,7 @@ async function processService(serviceName, serviceData, serviceDir, debug){
         return
     } catch (err) {
         logger.error(err);
+        process.exit(1);
     }
 }
 
