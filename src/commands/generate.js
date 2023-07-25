@@ -192,21 +192,39 @@ export async function generateSpecs(options, rootDir) {
                     if(svcData['auth']['oauth2']){
                         if(svcData['auth']['oauth2']['scopes']){
                             if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
-                                if(provider === 'firebase'){
-                                    if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                    // its a firebase service
+                                    if(provider === 'firebase'){
                                         logger.info(`--------------------------------------`);
                                         logger.info(`processing service ${service.name} ...`);
                                         logger.info(`--------------------------------------`);
                                         createDir(svcDir, debug);
-                                        await processService(service.name, svcData, svcDir, debug);
+                                        await processService(service.name, svcData, svcDir, debug);                                        
                                     }
                                 } else {
-                                    logger.info(`--------------------------------------`);
-                                    logger.info(`processing service ${service.name} ...`);
-                                    logger.info(`--------------------------------------`);
-                                    createDir(svcDir, debug);
-                                    await processService(service.name, svcData, svcDir, debug);                                    
+                                    if(provider === 'googleapis.com'){
+                                        logger.info(`--------------------------------------`);
+                                        logger.info(`processing service ${service.name} ...`);
+                                        logger.info(`--------------------------------------`);
+                                        createDir(svcDir, debug);
+                                        await processService(service.name, svcData, svcDir, debug);                                        
+                                    }
                                 }
+                                // if(provider === 'firebase'){
+                                //     if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                //         logger.info(`--------------------------------------`);
+                                //         logger.info(`processing service ${service.name} ...`);
+                                //         logger.info(`--------------------------------------`);
+                                //         createDir(svcDir, debug);
+                                //         await processService(service.name, svcData, svcDir, debug);
+                                //     }
+                                // } else {
+                                //     logger.info(`--------------------------------------`);
+                                //     logger.info(`processing service ${service.name} ...`);
+                                //     logger.info(`--------------------------------------`);
+                                //     createDir(svcDir, debug);
+                                //     await processService(service.name, svcData, svcDir, debug);                                    
+                                // }
                             }
                         }
                     }
