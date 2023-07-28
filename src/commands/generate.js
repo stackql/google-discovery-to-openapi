@@ -210,21 +210,6 @@ export async function generateSpecs(options, rootDir) {
                                         await processService(service.name, svcData, svcDir, debug);                                        
                                     }
                                 }
-                                // if(provider === 'firebase'){
-                                //     if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
-                                //         logger.info(`--------------------------------------`);
-                                //         logger.info(`processing service ${service.name} ...`);
-                                //         logger.info(`--------------------------------------`);
-                                //         createDir(svcDir, debug);
-                                //         await processService(service.name, svcData, svcDir, debug);
-                                //     }
-                                // } else {
-                                //     logger.info(`--------------------------------------`);
-                                //     logger.info(`processing service ${service.name} ...`);
-                                //     logger.info(`--------------------------------------`);
-                                //     createDir(svcDir, debug);
-                                //     await processService(service.name, svcData, svcDir, debug);                                    
-                                // }
                             }
                         }
                     }

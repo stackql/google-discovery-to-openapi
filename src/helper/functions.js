@@ -165,6 +165,7 @@ export function tagOperations(openapiDoc, service, debug) {
         const operationObj = openapiDoc.paths[path][verb];
         const [resource, action] = getResource(service, operationId, debug);
         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
+        openapiDoc.paths[path][verb]['x-stackQL-method'] = action;
         openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
       }
     }

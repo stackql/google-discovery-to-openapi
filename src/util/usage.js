@@ -98,7 +98,7 @@ function parseArgumentsIntoOptions(args) {
                 break;
             case '--debug':
             case '-d':
-                debug = true;
+                debug = false;
                 break;
             case 'help':
             case '--help':

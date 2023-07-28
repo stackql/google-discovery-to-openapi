@@ -2,7 +2,6 @@ import { logger } from '../util/logging.js';
 import { 
     resourceNameOverridesByOperationId,
     resourceNameOverridesByResourceName,
-    // genericResourceNameOverrides,
     sqlVerbOverrides,
  } from './overrides.js';
 
@@ -20,38 +19,24 @@ function camelToSnake(name) {
     return name.toLowerCase();
 }
 
-function getResourceNameOverride(service, resource, operationId) {
-    let newResource = resourceNameOverridesByOperationId[service] && resourceNameOverridesByOperationId[service][operationId];
+function getResourceNameOverrideByOperationId(service, operationId) {
+    // return the resource name or false
+    return resourceNameOverridesByOperationId[service] && resourceNameOverridesByOperationId[service][operationId];
+}
+
+function getResourceNameOverrideByName(service, resource) {
+    // return the new resource name or the original
+    const override = resourceNameOverridesByResourceName[service] && resourceNameOverridesByResourceName[service][resource];
     
-    if (newResource) {
-        return newResource;
-    } else {
-        // apply generic overrides
-        if(resource.startsWith('projects_locations_')){
-            newResource = resource.slice('projects_locations_'.length);
-        } else if (resource.startsWith('organizations_locations_')) {
-            newResource = resource.slice('organizations_locations_'.length);
-        } else if(resource === 'projects_locations'){
-            newResource = 'locations';
-        } else if(resource === 'organizations_locations'){
-            newResource = 'locations';
-        } else {
-            newResource = resource;
-        }
-        // apply resource specific overrides by service
-        let resourceOverrideFunc = resourceNameOverridesByResourceName[service];
-        if (resourceOverrideFunc) {
-            let override = resourceOverrideFunc(newResource);
-            if (override) {
-                return override;
-            }
-        }
+    if (override) {
+        return override;
     }
 
-    return newResource;
+    return resource;
 }
 
 function getSqlVerbOverride(service, verb, operationId) {
+    // return the new sql verb or the original
     const override = sqlVerbOverrides[service] && sqlVerbOverrides[service][operationId];
     
     if (override) {
@@ -61,59 +46,80 @@ function getSqlVerbOverride(service, verb, operationId) {
     return verb;
 }
 
+function getResourceNameFromOperationId(operationId) {
+
+    const opTokens = operationId.split('.');
+    // return 2d last token
+    return camelToSnake(opTokens[opTokens.length - 2]);
+
+}
+
+
 export function getResource(service, operationId, debug){
 
-    let resource = service;
     const action = operationId.split('.')[operationId.split('.').length - 1];
 
-    const resTokens = [];
-    for (const token of operationId.split('.').slice(1, -1)) {
-    resTokens.push(camelToSnake(token));
+    // check for an explicit map by operationId
+    if(getResourceNameOverrideByOperationId(service, operationId)){
+        return [getResourceNameOverrideByOperationId(service, operationId), action];
     }
 
-    // error and exit if resTokens is empty
-    if (resTokens.length === 0) {
-        logger.warn(`resTokens is empty for ${operationId}`);
-    }
+    // derive the resource name from the operationId    
+    let resource = getResourceNameFromOperationId(operationId);
+    
+    const specialTokens = [
+        'organizations', 
+        'folders', 
+        'projects', 
+        'locations',
+    ];
+    const verbs = [
+        'get', 
+        'list',
+        'delete',
+        'batchGet',
+        'remove',
+        'create',
+        'add',
+        'update',
+        'fetch',
+        'retrieve',
+    ];
 
-    resource = resTokens.join('_');
-
-    // general action based rules
-    if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
-        resource = `${resource}_iam_policies`;
-    } else if (action.startsWith('get') && action !== 'get') {
-        resource = `${resource}${camelToSnake(action.slice(3))}`;
-    } else if (action.startsWith('list') && action !== 'list') {
-        resource = `${resource}${camelToSnake(action.slice(4))}`;
-    } else if (action.startsWith('delete') && action !== 'delete') {
-        resource = `${resource}${camelToSnake(action.slice(6))}`;
-    } else if (action.startsWith('batchGet') && action !== 'batchGet') {
-        resource = `${resource}${camelToSnake(action.slice(8))}`;
-    } else if (action.startsWith('remove') && action !== 'remove') {
-        resource = `${resource}${camelToSnake(action.slice(6))}`;
-    } else if (action.startsWith('create') && action !== 'create') {
-        resource = `${resource}${camelToSnake(action.slice(6))}`;
-    } else if (action.startsWith('add') && action !== 'add') {
-        resource = `${resource}${camelToSnake(action.slice(3))}`;
-    } else if (action.startsWith('fetch') && action !== 'fetch') {
-        resource = `${resource}${camelToSnake(action.slice(5))}`;
-    } else if (action.startsWith('retrieve') && action !== 'retrieve') {
-        resource = `${resource}${camelToSnake(action.slice(8))}`;
-    }
+    // update resource name based on action
+    const processAction = (action, resource) => {
+        if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
+            return `${resource}_iam_policies`;
+        } else {
+            for (let verb of verbs) {
+                if (action.startsWith(verb) && action !== verb) {
+                    const suffix = camelToSnake(action.slice(verb.length));
+                    if (specialTokens.includes(resource)) {
+                        return `${suffix}`;
+                    } else {
+                        return `${resource}_${suffix}`;
+                    }
+                }
+            }
+        }
+        // return original resource if no special conditions apply
+        return resource;
+    };
+    
+    resource = processAction(action, resource);
 
     // replace double underscores in resource name with single underscore
     resource = resource.replace(/__/g, '_');
-
-    const preChangedResourceName = resource;
-
-    resource = getResourceNameOverride(service, resource, operationId);
-
-    console.log(`${preChangedResourceName} => ${resource}`);
 
     // resource should never start with an underscore
     if (resource.startsWith('_')) {
         resource = resource.slice(1);
     }
+
+    // final update based upon resource name
+    resource = getResourceNameOverrideByName(service, resource);
+
+    console.log(`${resource},${operationId}`);
 
     return [resource, action];
 }
@@ -131,52 +137,8 @@ function checkAdditionalProperties(moperationObj, schemasObj) {
     }
 }
 
-// export function getSQLVerb(service, resource, action, operationId, httpPath, httpVerb, operationObj, schemasObj, debug) {
-
-//     // default sql verb to 'exec'
-//     let sqlVerb = 'exec';
-
-//     const actionToVerb = {
-//         'add': 'insert',
-//         'create': 'insert',
-//         'insert': 'insert',
-//         'get': 'select',
-//         'list': 'select',
-//         'aggregated': 'select',
-//         'fetch': 'select',
-//         'read': 'select',
-//         'retrieve': 'select',
-//         'delete': 'delete',
-//         'remove': 'delete',
-//         'destroy': 'delete',
-//         'dropDatabase': 'delete',
-//     };
-
-//     const verbAction = Object.keys(actionToVerb).find(actionStart => action.startsWith(actionStart));
-//     if (verbAction) {
-//         sqlVerb = actionToVerb[verbAction];
-//         if (sqlVerb === 'delete' && action === 'removeProject') {
-//             sqlVerb = 'exec';
-//         }
-//     }
-
-//     // safeguard
-//     if (sqlVerb === 'select' && httpVerb !== 'get') {
-//         sqlVerb === 'exec';
-//     }
-
-//     sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;
-
-//     // override by exception by service
-//     sqlVerb = getSqlVerbOverride(service, sqlVerb, operationId);
-
-//     return sqlVerb;
-// }
-
 export function getSQLVerb(service, resource, action, operationId, httpPath, httpVerb, operationObj, schemasObj, debug) {
     
-    console.log(`Checking verb for resource: ${resource}, action ${action}`); // Debug line
-
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
@@ -199,30 +161,21 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     const verbAction = Object.keys(actionToVerb).find(actionStart => action.startsWith(actionStart));
 
     if (verbAction) {
-        console.log(`Matched verbAction: ${verbAction}`); // Debug line
         sqlVerb = actionToVerb[verbAction];
         if (sqlVerb === 'delete' && action === 'removeProject') {
             sqlVerb = 'exec';
         }
     }
 
-    console.log(`sqlVerb after actionToVerb: ${sqlVerb}`); // Debug line
-
     // safeguard
     if (sqlVerb === 'select' && httpVerb !== 'get') {
         sqlVerb = 'exec';
     }
 
-    console.log(`sqlVerb after safeguard: ${sqlVerb}`); // Debug line
-
     sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;
-
-    console.log(`sqlVerb after checkAdditionalProperties: ${sqlVerb}`); // Debug line
 
     // override by exception by service
     sqlVerb = getSqlVerbOverride(service, sqlVerb, operationId);
-
-    console.log(`sqlVerb after getSqlVerbOverride: ${sqlVerb}`); // Debug line
 
     return sqlVerb;
 }
