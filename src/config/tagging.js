@@ -195,33 +195,19 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
-    const actionToVerb = {
-        'add': 'insert',
-        'create': 'insert',
-        'insert': 'insert',
-        'get': 'select',
-        'list': 'select',
-        'aggregated': 'select',
-        'fetch': 'select',
-        'read': 'select',
-        'retrieve': 'select',
-        'delete': 'delete',
-        'remove': 'delete',
-        'destroy': 'delete',
-        'dropDatabase': 'delete',
-    };
-
-    const verbAction = Object.keys(actionToVerb).find(actionStart => action.startsWith(actionStart));
-
-    if (verbAction) {
-        sqlVerb = actionToVerb[verbAction];
-        if (sqlVerb === 'delete' && action === 'removeProject') {
-            sqlVerb = 'exec';
-        }
+    if(action === 'aggregated_list' || action.startsWith('get') || action.startsWith('list') || action.startsWith('add')){
+        sqlVerb = httpVerb === 'get' ? 'select' : 'exec';
     }
 
-    // safeguard
-    if (sqlVerb === 'select' && httpVerb !== 'get') {
+    if(action.startsWith('delete')){
+        sqlVerb = httpVerb === 'delete' ? 'delete' : 'exec';
+    }
+
+    if(action.startsWith('insert') || action.startsWith('create')){        
+        sqlVerb = httpVerb === 'post' ? 'insert' : 'exec';
+    }
+
+    if (sqlVerb === 'delete' && action === 'removeProject') {
         sqlVerb = 'exec';
     }
 
