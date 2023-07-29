@@ -54,6 +54,60 @@ function getResourceNameFromOperationId(operationId) {
 
 }
 
+export function getMethodName(service, operationId, debug) {
+    const fullyQualifiedMethodNameServices = [
+        'accessapproval',
+        'analyticshub',
+        'apigee',
+        'apigeeregistry',
+        'beyondcorp',
+        'bigquerydatatransfer',
+        'cloudbuild',
+        'container',
+        'containeranalysis',
+        'datacatalog',
+        'dataflow',
+        'datalabeling',
+        'dataplex',
+        'dataproc',
+        'dialogflow',
+        'discoveryengine',
+        'dlp',
+        'documentai',
+        'essentialcontacts',
+        'gkehub',
+        'gkeonprem',
+        'integrations',
+        'logging',
+        'ml',
+        'monitoring',
+        'networksecurity',
+        'orgpolicy',
+        'policysimulator',
+        'prod_tt_sasportal',
+        'pubsub',
+        'pubsublite',
+        'recommendationengine',
+        'recommender',
+        'resourcesettings',
+        'retail',
+        'sasportal',
+        'securitycenter',
+        'spanner',
+        'translate',
+        'videointelligence',
+        'vision',
+    ];
+
+    const action = operationId.split('.')[operationId.split('.').length - 1];
+    const opTokens = operationId.split('.').slice(1);
+
+    if (fullyQualifiedMethodNameServices.includes(service)) {
+        return camelToSnake(opTokens.join('_'));
+    } else {
+        return camelToSnake(action);
+    }
+}
 
 export function getResource(service, operationId, debug){
 
@@ -90,7 +144,8 @@ export function getResource(service, operationId, debug){
     const processAction = (action, resource) => {
         if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
             return `${resource}_iam_policies`;
-        } else {
+        } 
+        else {
             for (let verb of verbs) {
                 if (action.startsWith(verb) && action !== verb) {
                     const suffix = camelToSnake(action.slice(verb.length));
@@ -118,8 +173,6 @@ export function getResource(service, operationId, debug){
 
     // final update based upon resource name
     resource = getResourceNameOverrideByName(service, resource);
-
-    console.log(`${resource},${operationId}`);
 
     return [resource, action];
 }
