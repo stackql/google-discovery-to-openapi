@@ -3,6 +3,9 @@ export const resourceNameOverridesByOperationId = {
         'discoveryengine.projects.locations.collections.dataStores.siteSearchEngine.operations.list' : 'search_engine_operations',
         'discoveryengine.projects.locations.collections.dataStores.siteSearchEngine.targetSites.operations.list' : 'target_site_operations',
     },
+    integrations: {
+        'integrations.projects.locations.integrations.executeEvent' : 'skip_this_resource',
+    },
     osconfig: {
         'osconfig.projects.locations.instances.vulnerabilityReports.get' : 'vulnerability_report',
         'osconfig.projects.locations.instances.osPolicyAssignments.reports.get' : 'report',
@@ -72,6 +75,12 @@ export const resourceNameOverridesByOperationId = {
 };
 
 export const resourceNameOverridesByResourceName = {
+    contactcenteraiplatform: {
+        'contact_centers_authentication-config' : 'authentication_config',
+    },
+    container: {
+        'well-known_openid-configuration' : 'well_known_openid_configuration',
+    }
 };
 
 export const sqlVerbOverrides = {
