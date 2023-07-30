@@ -168,6 +168,12 @@ export function tagOperations(openapiDoc, service, debug) {
         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
         openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
         openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
+
+        // console.log(`resource: ${service}.${resource}`);
+        // console.log(`operationId: ${operationId}`);
+        // console.log(`method: ${getMethodName(service, operationId, debug)}`);
+        // console.log(`verb: ${getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug)}`);
+
       }
     }
   }

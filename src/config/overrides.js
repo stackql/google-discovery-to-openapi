@@ -1,4 +1,17 @@
 export const resourceNameOverridesByOperationId = {
+    compute: {
+        'compute.securityPolicies.aggregatedList' : 'security_policies_aggregated',
+        'compute.backendServices.aggregatedList' : 'backend_services_aggregated',
+        'compute.healthChecks.aggregatedList' : 'health_checks_aggregated',
+        'compute.sslCertificates.aggregatedList' : 'ssl_certificates_aggregated',
+        'compute.urlMaps.aggregatedList' : 'url_maps_aggregated',
+        'compute.targetHttpProxies.aggregatedList' : 'target_http_proxies_aggregated',
+        'compute.globalOperations.aggregatedList' : 'global_operations_aggregated',
+        'compute.targetHttpsProxies.aggregatedList' : 'target_https_proxies_aggregated',
+        'compute.targetTcpProxies.aggregatedList' : 'target_tcp_proxies_aggregated',
+        'compute.sslPolicies.aggregatedList' : 'ssl_policies_aggregated', 
+        'compute.instanceTemplates.aggregatedList' : 'instance_templates_aggregated',       
+    },    
     discoveryengine: {
         'discoveryengine.projects.locations.collections.dataStores.siteSearchEngine.operations.list' : 'search_engine_operations',
         'discoveryengine.projects.locations.collections.dataStores.siteSearchEngine.targetSites.operations.list' : 'target_site_operations',

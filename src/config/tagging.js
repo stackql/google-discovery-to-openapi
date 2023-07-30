@@ -190,31 +190,75 @@ function checkAdditionalProperties(moperationObj, schemasObj) {
     }
 }
 
+function ifStartsWithOrEquals(str, substr) {
+    return str.startsWith(substr) || str === substr;
+}
+
+const googleSelectMethods = [
+    'aggregatedList',
+    'get',
+    'list',
+];
+
+const googleInsertMethods = [
+    'insert',
+    'create',
+];
+
+const googleDeleteMethods = [
+    'delete',
+];
+
 export function getSQLVerb(service, resource, action, operationId, httpPath, httpVerb, operationObj, schemasObj, debug) {
     
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
-    if(action === 'aggregated_list' || action.startsWith('get') || action.startsWith('list') || action.startsWith('add')){
-        sqlVerb = httpVerb === 'get' ? 'select' : 'exec';
+    // console.log(`getSQLVerb: ${service} ${resource} ${action} ${operationId} ${httpVerb}`);
+
+    // check if action equals or starts with a select method
+    if (googleSelectMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'get') {
+        sqlVerb = 'select';
     }
 
-    if(action.startsWith('delete')){
-        sqlVerb = httpVerb === 'delete' ? 'delete' : 'exec';
+    // check if action equals or starts with an insert method
+    if (googleInsertMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'insert';
     }
 
-    if(action.startsWith('insert') || action.startsWith('create')){        
-        sqlVerb = httpVerb === 'post' ? 'insert' : 'exec';
+    // check if action equals or starts with a delete method
+    if (googleDeleteMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'delete') {
+        sqlVerb = 'delete';
     }
 
-    if (sqlVerb === 'delete' && action === 'removeProject') {
-        sqlVerb = 'exec';
-    }
+    // if(action === 'aggregatedList' || action.startsWith('get') || action.startsWith('list') || action.startsWith('add')){
+    //     sqlVerb = httpVerb === 'get' ? 'select' : 'exec';
+    // }
 
-    sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;
+    // if(action.startsWith('delete')){
+    //     sqlVerb = httpVerb === 'delete' ? 'delete' : 'exec';
+    // }
+
+    // if(action.startsWith('insert') || action.startsWith('create')){        
+    //     sqlVerb = httpVerb === 'post' ? 'insert' : 'exec';
+    // }
+
+    // if (sqlVerb === 'delete' && action === 'removeProject') {
+    //     sqlVerb = 'exec';
+    // }
+
+    // console.log(`sqlVerb before: ${sqlVerb}`)
+
+    if(action !== 'aggregatedList' ){
+        sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
+    }
+    
+    // console.log(`sqlVerb after checkAdditionalProperties: ${sqlVerb}`)
 
     // override by exception by service
     sqlVerb = getSqlVerbOverride(service, sqlVerb, operationId);
+
+    // console.log(`sqlVerb after getSqlVerbOverride: ${sqlVerb}`)
 
     return sqlVerb;
 }

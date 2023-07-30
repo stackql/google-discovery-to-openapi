@@ -97,6 +97,16 @@ async function processService(serviceName, serviceData, serviceDir, debug){
         debug ? logger.debug('tagging operations..') : null;
         openApiDoc = tagOperations(openApiDoc, serviceName, debug);
 
+        // remove problematic operations
+        debug ? logger.debug('removing problem paths..') : null;
+        const pathsToRemove = [
+            '/v1alpha/projects/{projectsId}/locations/{locationsId}/integrations/{integrationsId}:executeEvent'
+        ];
+
+        pathsToRemove.forEach(path => {
+            delete openApiDoc['paths'][path];
+        });
+
         // write out openapi doc as yaml
         const openApiDocYaml = yaml.dump(openApiDoc);
         await writeFile(path.join(serviceDir, `${serviceName}.yaml`), openApiDocYaml, debug);
