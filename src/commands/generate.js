@@ -95,7 +95,17 @@ async function processService(serviceName, serviceData, serviceDir, debug){
 
         // tag operations
         debug ? logger.debug('tagging operations..') : null;
-        openApiDoc = tagOperations(openApiDoc, serviceName);
+        openApiDoc = tagOperations(openApiDoc, serviceName, debug);
+
+        // remove problematic operations
+        debug ? logger.debug('removing problem paths..') : null;
+        const pathsToRemove = [
+            '/v1alpha/projects/{projectsId}/locations/{locationsId}/integrations/{integrationsId}:executeEvent'
+        ];
+
+        pathsToRemove.forEach(path => {
+            delete openApiDoc['paths'][path];
+        });
 
         // write out openapi doc as yaml
         const openApiDocYaml = yaml.dump(openApiDoc);
@@ -104,6 +114,7 @@ async function processService(serviceName, serviceData, serviceDir, debug){
         return
     } catch (err) {
         logger.error(err);
+        process.exit(1);
     }
 }
 
@@ -191,16 +202,23 @@ export async function generateSpecs(options, rootDir) {
                     if(svcData['auth']['oauth2']){
                         if(svcData['auth']['oauth2']['scopes']){
                             if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
-                                if(provider === 'firebase'){
-                                    if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                                    // its a firebase service
+                                    if(provider === 'firebase'){
+                                        logger.info(`--------------------------------------`);
                                         logger.info(`processing service ${service.name} ...`);
+                                        logger.info(`--------------------------------------`);
                                         createDir(svcDir, debug);
-                                        await processService(service.name, svcData, svcDir, debug);
+                                        await processService(service.name, svcData, svcDir, debug);                                        
                                     }
                                 } else {
-                                    logger.info(`processing service ${service.name} ...`);
-                                    createDir(svcDir, debug);
-                                    await processService(service.name, svcData, svcDir, debug);                                    
+                                    if(provider === 'googleapis.com'){
+                                        logger.info(`--------------------------------------`);
+                                        logger.info(`processing service ${service.name} ...`);
+                                        logger.info(`--------------------------------------`);
+                                        createDir(svcDir, debug);
+                                        await processService(service.name, svcData, svcDir, debug);                                        
+                                    }
                                 }
                             }
                         }

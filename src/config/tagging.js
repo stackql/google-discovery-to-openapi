@@ -1,296 +1,240 @@
+import { logger } from '../util/logging.js';
+import { 
+    resourceNameOverridesByOperationId,
+    resourceNameOverridesByResourceName,
+    sqlVerbOverrides,
+ } from './overrides.js';
+
+const exceptions = ['gitlab', 'github', 'dotcom'];
+
 function camelToSnake(name) {
-    name = name.replace(/([A-Z])/g, function(match) {
-      return "_" + match;
-    });
+    // Replace exceptions in string regardless of case
+    for (const exception of exceptions) {
+        const regex = new RegExp(exception, 'ig'); // 'i' for case insensitive and 'g' for global
+        name = name.replace(regex, exception);
+    }
+
+    // Then convert the rest to snake case
+    name = name.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
     return name.toLowerCase();
 }
 
-function cleanResourceName(service, resource, subresource) {
-    if (service === resource) {
-      return subresource;
+function getResourceNameOverrideByOperationId(service, operationId) {
+    // return the resource name or false
+    return resourceNameOverridesByOperationId[service] && resourceNameOverridesByOperationId[service][operationId];
+}
+
+function getResourceNameOverrideByName(service, resource) {
+    // return the new resource name or the original
+    const override = resourceNameOverridesByResourceName[service] && resourceNameOverridesByResourceName[service][resource];
+    
+    if (override) {
+        return override;
+    }
+
+    return resource;
+}
+
+function getSqlVerbOverride(service, verb, operationId) {
+    // return the new sql verb or the original
+    const override = sqlVerbOverrides[service] && sqlVerbOverrides[service][operationId];
+    
+    if (override) {
+        return override;
+    }
+
+    return verb;
+}
+
+function getResourceNameFromOperationId(operationId) {
+
+    const opTokens = operationId.split('.');
+    // return 2d last token
+    return camelToSnake(opTokens[opTokens.length - 2]);
+
+}
+
+export function getMethodName(service, operationId, debug) {
+    const fullyQualifiedMethodNameServices = [
+        'accessapproval',
+        'analyticshub',
+        'apigee',
+        'apigeeregistry',
+        'beyondcorp',
+        'bigquerydatatransfer',
+        'cloudbuild',
+        'container',
+        'containeranalysis',
+        'datacatalog',
+        'dataflow',
+        'datalabeling',
+        'dataplex',
+        'dataproc',
+        'dialogflow',
+        'discoveryengine',
+        'dlp',
+        'documentai',
+        'essentialcontacts',
+        'gkehub',
+        'gkeonprem',
+        'integrations',
+        'logging',
+        'ml',
+        'monitoring',
+        'networksecurity',
+        'orgpolicy',
+        'policysimulator',
+        'prod_tt_sasportal',
+        'pubsub',
+        'pubsublite',
+        'recommendationengine',
+        'recommender',
+        'resourcesettings',
+        'retail',
+        'sasportal',
+        'securitycenter',
+        'spanner',
+        'translate',
+        'videointelligence',
+        'vision',
+    ];
+
+    const action = operationId.split('.')[operationId.split('.').length - 1];
+    const opTokens = operationId.split('.').slice(1);
+
+    if (fullyQualifiedMethodNameServices.includes(service)) {
+        return camelToSnake(opTokens.join('_'));
     } else {
-      return resource + '_' + subresource;
+        return camelToSnake(action);
     }
 }
-  
-export function getResource(service, operationId){
-    const baseService = service.split('_')[0];
-        
-    let resource = camelToSnake(operationId.split('.')[operationId.split('.').length - 2]);
+
+export function getResource(service, operationId, debug){
+
     const action = operationId.split('.')[operationId.split('.').length - 1];
 
-    // custom resource names for clouddebugger
-    if (baseService === 'clouddebugger') {
-        const resTokens = [];
-        for (const token of operationId.split('.').slice(1, -1)) {
-        resTokens.push(token);
-        }
-        resource = resTokens.join('_');
+    // check for an explicit map by operationId
+    if(getResourceNameOverrideByOperationId(service, operationId)){
+        return [getResourceNameOverrideByOperationId(service, operationId), action];
     }
 
-    // general action based rules
-    if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
-        resource = cleanResourceName(baseService, resource, 'iam_policies');
-    } else if (action.startsWith('get') && action !== 'get') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(3)));
-    } else if (action.startsWith('list') && action !== 'list') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(4)));
-    } else if (action.startsWith('delete') && action !== 'delete') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
-    } else if (action.startsWith('batchGet') && action !== 'batchGet') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
-    } else if (action.startsWith('remove') && action !== 'remove') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
-    } else if (action.startsWith('create') && action !== 'create') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(6)));
-    } else if (action.startsWith('add') && action !== 'add') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(3)));
-    } else if (action.startsWith('fetch') && action !== 'fetch') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(5)));
-    } else if (action.startsWith('retrieve') && action !== 'retrieve') {
-        resource = cleanResourceName(baseService, resource, camelToSnake(action.slice(8)));
-    }
+    // derive the resource name from the operationId    
+    let resource = getResourceNameFromOperationId(operationId);
+    
+    const specialTokens = [
+        'organizations', 
+        'folders', 
+        'projects', 
+        'locations',
+    ];
+    const verbs = [
+        'get', 
+        'list',
+        'delete',
+        'batchGet',
+        'remove',
+        'create',
+        'add',
+        'update',
+        'fetch',
+        'retrieve',
+    ];
+
+    // update resource name based on action
+    const processAction = (action, resource) => {
+        if (['getIamPolicy', 'setIamPolicy', 'testIamPermissions', 'analyzeIamPolicy', 'analyzeIamPolicyLongrunning', 'searchAllIamPolicies'].includes(action)) {
+            return `${resource}_iam_policies`;
+        } 
+        else {
+            for (let verb of verbs) {
+                if (action.startsWith(verb) && action !== verb) {
+                    const suffix = camelToSnake(action.slice(verb.length));
+                    if (specialTokens.includes(resource)) {
+                        return `${suffix}`;
+                    } else {
+                        return `${resource}_${suffix}`;
+                    }
+                }
+            }
+        }
+        // return original resource if no special conditions apply
+        return resource;
+    };
+    
+    resource = processAction(action, resource);
 
     // replace double underscores in resource name with single underscore
     resource = resource.replace(/__/g, '_');
 
-    // service based exceptions
-    switch(baseService){
-        case 'compute':
-            if (['instance_templates', 'backend_services', 'health_checks', 'global_operations', 'security_policies', 'ssl_certificates', 'target_http_proxies', 'target_https_proxies', 'url_maps'].includes(resource) && action === 'aggregatedList') {
-                resource = resource + '_aggregated';
-            } else if (resource === 'instances' && action === 'bulkInsert') {
-                resource = resource + '_batch';
-            }
-            break;
-        case 'containeranalysis':
-            if (['notes', 'occurrences'].includes(resource) && action === 'batchCreate') {
-                resource = resource + '_batch';
-            }
-            break;
-        case 'dataflow':
-            if (resource === 'jobs' && action === 'aggregated') {
-                resource = resource + '_aggregated';
-            }
-            break;
-        case 'documentai':
-            if (operationId.split('.')[1] === 'uiv1beta3') {
-                resource = resource + '_uiv1beta3';
-            }
-            break;
-        case 'videointelligence':
-            if (operationId.split('.')[1] === 'operations' && resource === 'operations') {
-                resource = 'long_running_operations';
-            }
-            break;
-        case 'osconfig':
-            if (resource === 'inventories' && action === 'list') {
-                resource = 'instance_inventories';
-            } else if (resource === 'reports' && action === 'get') {
-                resource = 'report';
-            } else if (resource === 'vulnerability_reports' && action === 'get') {
-                resource = 'vulnerability_report';
-            }
-            break;
-        case 'privateca':
-            if (action === 'fetch' && resource === 'certificate_authorities') {
-                resource = 'certificate_signing_request';
-            }
-            break;
-        case 'jobs':
-            if (resource === 'jobs' && action === 'batchCreate') {
-                resource = resource + '_batch';
-            }
-            break;
-        case 'serviceconsumermanagement':
-            if (resource === 'tenancy_units' && action === 'removeProject') {
-                resource = resource + '_projects';
-            }
-            break;
-        case 'serviceusage':
-            if (resource === 'services' && action === 'batchGet') {
-                resource = resource + '_batch';
-            }
-            break;
-        case 'spanner':
-            if (resource === 'sessions' && action === 'read') {
-                resource = 'session_info';
-            } else if (resource === 'sessions' && action === 'batchCreate') {
-                resource = resource + '_batch';
-            }
-            break;
+    // resource should never start with an underscore
+    if (resource.startsWith('_')) {
+        resource = resource.slice(1);
     }
-   
+
+    // final update based upon resource name
+    resource = getResourceNameOverrideByName(service, resource);
+
     return [resource, action];
 }
-  
-export function getSQLVerb(service, resource, action, operationId, httpVerb){
+
+function checkAdditionalProperties(moperationObj, schemasObj) {
+    const schema = moperationObj.responses?.['200']?.content?.['application/json']?.schema?.['$ref'];
+    const schemaObj = schemasObj[schema.split('/').pop()];
+
+    if (schemaObj.properties) {
+        const hasAdditionalProperties = Object.values(schemaObj.properties).some(field => 'additionalProperties' in field);
+        return hasAdditionalProperties ? 'exec' : 'select';
+    } else {
+        logger.warn(`schemaObj.properties not found for ${schema}`);
+        return 'exec';
+    }
+}
+
+function ifStartsWithOrEquals(str, substr) {
+    return str.startsWith(substr) || str === substr;
+}
+
+const googleSelectMethods = [
+    'aggregatedList',
+    'get',
+    'list',
+];
+
+const googleInsertMethods = [
+    'insert',
+    'create',
+];
+
+const googleDeleteMethods = [
+    'delete',
+];
+
+export function getSQLVerb(service, resource, action, operationId, httpPath, httpVerb, operationObj, schemasObj, debug) {
     
-    const baseService = service.split('_')[0];
+    // default sql verb to 'exec'
+    let sqlVerb = 'exec';
 
-    let verb = 'exec';
-    // action to sql verb mapping
-    if (
-        action.startsWith('add') && 
-        action !== 'addons'
-        ){
-        verb = 'insert';
-    } else if (
-        action.startsWith('create') ||
-        action.startsWith('insert') ||
-        action === 'batchCreate' ||
-        action === 'bulkInsert'
-    ){
-        verb = 'insert';
-    } else if (
-        action.startsWith('get') ||
-        action.startsWith('list') ||
-        action.startsWith('aggregated') ||
-        action.startsWith('batchGet') ||
-        action.startsWith('fetch') ||
-        action.startsWith('read') ||
-        action.startsWith('retrieve')
-    ){
-        verb = 'select';
-        // aggregated scoped list 
-        if((resource == 'healthChecks' || 
-            resource == 'backendServices' || 
-            resource == 'globalOperations' || 
-            resource == 'securityPolicies' ||
-            resource == 'sslCertificates' ||
-            resource == 'targetHttpProxies' ||
-            resource == 'targetHttpsProxies' ||
-            resource == 'urlMaps'
-        ) && action == 'aggregatedList'){
-            verb = 'exec';
-        }
-        // exceptions
-        if(resource == 'relyingparty' && action == 'getPublicKeys'){
-            verb = 'exec';
-        }
-    } else if (
-        action.startsWith('delete') ||
-        action.startsWith('remove') ||
-        action === 'batchDelete' ||
-        action === 'destroy' ||
-        action === 'dropDatabase'
-    ){
-        if(action != 'removeProject'){
-            verb = 'delete';    
-        }
+    // check if action equals or starts with a select method
+    if (googleSelectMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'get') {
+        sqlVerb = 'select';
     }
 
-    // select exceptions
-    switch(baseService){
-        case 'osconfig':
-            if(resource == 'inventories'){
-                verb = 'exec';
-            }
-            break;
-        case 'cloudsearch':
-            if([
-                'cloudsearch.stats.index.datasources.get',
-                'cloudsearch.stats.user.searchapplications.get', 
-                'cloudsearch.stats.session.searchapplications.get', 
-                'cloudsearch.stats.query.searchapplications.get'
-            ].includes(operationId)){
-                verb = 'exec';
-            } 
-            break;
-        case 'compute':
-            if([
-                'compute.targetTcpProxies.aggregatedList',
-                'compute.sslPolicies.aggregatedList',
-                'compute.backendServices.aggregatedList',
-                'compute.globalOperations.aggregatedList',
-                'compute.targetHttpProxies.aggregatedList',
-                'compute.targetHttpsProxies.aggregatedList',
-                'compute.sslCertificates.aggregatedList',
-                'compute.healthChecks.aggregatedList',
-                'compute.urlMaps.aggregatedList',
-                'compute.securityPolicies.aggregatedList',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'dataform':
-            if([
-                'dataform.projects.locations.repositories.workspaces.readFile',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'identitytoolkit':
-            if([
-                'identitytoolkit.relyingparty.getPublicKeys',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'doubleclicksearch':
-            if([
-                'doubleclicksearch.reports.getFile',
-                'doubleclicksearch.reports.getIdMappingFile',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'tagmanager':
-            if([
-                'tagmanager.accounts.containers.workspaces.built_in_variables.create',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'androidenterprise':
-            if([
-                'androidenterprise.enterprises.createEnrollmentToken',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'androidmanagement':
-            if([
-                'androidmanagement.signupUrls.create',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'displayvideo':
-            if([
-                'displayvideo.advertisers.lineItems.bulkListAssignedTargetingOptions',
-            ].includes(operationId)){
-                verb = 'exec';
-            }
-            break;
-        case 'prod_tt_sasportal':
-            if([
-                'prod_tt_sasportal.customers.nodes.get',
-                'prod_tt_sasportal.nodes.nodes.get',
-                'prod_tt_sasportal.nodes.get',
-            ].includes(operationId)){
-                verb = 'exec';
-            } else if ([
-                'prod_tt_sasportal.policies.get',
-            ].includes(operationId)){
-                verb = 'select';
-            }
-            break;
-        case 'sasportal':
-            if([
-                'sasportal.customers.nodes.get',
-                'sasportal.nodes.nodes.get',
-                'sasportal.nodes.get',
-            ].includes(operationId)){
-                verb = 'exec';
-            } else if ([
-                'sasportal.policies.get',
-            ].includes(operationId)){
-                verb = 'select';
-            }
-            break;
+    // check if action equals or starts with an insert method
+    if (googleInsertMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'insert';
     }
-    return verb;
+
+    // check if action equals or starts with a delete method
+    if (googleDeleteMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'delete') {
+        sqlVerb = 'delete';
+    }
+
+    sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
+
+    // override by exception by service
+    sqlVerb = getSqlVerbOverride(service, sqlVerb, operationId);
+
+    return sqlVerb;
 }
 
   

@@ -2,6 +2,7 @@ import { logger } from '../util/logging.js';
 import { 
   getResource,
   getSQLVerb,
+  getMethodName,
 } from '../config/tagging.js';
 import { isParamRequired } from './reqparams.js';
 
@@ -156,14 +157,23 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
 *  exported functions 
 */
 
-export function tagOperations(openapiDoc, service) {
+export function tagOperations(openapiDoc, service, debug) {
+  const schemasObj = openapiDoc['components']['schemas'];
   for (const path of Object.keys(openapiDoc.paths)) {
     for (const verb of Object.keys(openapiDoc.paths[path])) {
       if (verb !== 'parameters') {    
         const operationId = openapiDoc.paths[path][verb].operationId;
-        const [resource, action] = getResource(service, operationId);
+        const operationObj = openapiDoc.paths[path][verb];
+        const [resource, action] = getResource(service, operationId, debug);
         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
-        openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, verb);
+        openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
+        openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
+
+        // console.log(`resource: ${service}.${resource}`);
+        // console.log(`operationId: ${operationId}`);
+        // console.log(`method: ${getMethodName(service, operationId, debug)}`);
+        // console.log(`verb: ${getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug)}`);
+
       }
     }
   }
