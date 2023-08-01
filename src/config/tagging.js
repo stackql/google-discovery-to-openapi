@@ -214,8 +214,6 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
-    // console.log(`getSQLVerb: ${service} ${resource} ${action} ${operationId} ${httpVerb}`);
-
     // check if action equals or starts with a select method
     if (googleSelectMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'get') {
         sqlVerb = 'select';
@@ -231,34 +229,10 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
         sqlVerb = 'delete';
     }
 
-    // if(action === 'aggregatedList' || action.startsWith('get') || action.startsWith('list') || action.startsWith('add')){
-    //     sqlVerb = httpVerb === 'get' ? 'select' : 'exec';
-    // }
-
-    // if(action.startsWith('delete')){
-    //     sqlVerb = httpVerb === 'delete' ? 'delete' : 'exec';
-    // }
-
-    // if(action.startsWith('insert') || action.startsWith('create')){        
-    //     sqlVerb = httpVerb === 'post' ? 'insert' : 'exec';
-    // }
-
-    // if (sqlVerb === 'delete' && action === 'removeProject') {
-    //     sqlVerb = 'exec';
-    // }
-
-    // console.log(`sqlVerb before: ${sqlVerb}`)
-
-    if(action !== 'aggregatedList' ){
-        sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
-    }
-    
-    // console.log(`sqlVerb after checkAdditionalProperties: ${sqlVerb}`)
+    sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
 
     // override by exception by service
     sqlVerb = getSqlVerbOverride(service, sqlVerb, operationId);
-
-    // console.log(`sqlVerb after getSqlVerbOverride: ${sqlVerb}`)
 
     return sqlVerb;
 }
