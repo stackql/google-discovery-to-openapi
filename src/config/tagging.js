@@ -3,6 +3,7 @@ import {
     resourceNameOverridesByOperationId,
     resourceNameOverridesByResourceName,
     sqlVerbOverrides,
+    objectKeyByOperationId,
  } from './overrides.js';
 
 const exceptions = ['gitlab', 'github', 'dotcom'];
@@ -208,6 +209,20 @@ const googleInsertMethods = [
 const googleDeleteMethods = [
     'delete',
 ];
+
+
+export function getObjectKey(service, operationId, debug) {
+    // Check if the service exists in the objectKeyByOperationId object
+    if (objectKeyByOperationId[service]) {
+        // Check if the operationId exists for the given service
+        if (objectKeyByOperationId[service][operationId]) {
+            return objectKeyByOperationId[service][operationId];
+        }
+    }
+
+    // If the service or operationId doesn't exist, return false
+    return false;
+}
 
 export function getSQLVerb(service, resource, action, operationId, httpPath, httpVerb, operationObj, schemasObj, debug) {
     
