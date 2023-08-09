@@ -2,6 +2,7 @@ import { logger } from '../util/logging.js';
 import { 
   getResource,
   getSQLVerb,
+  getObjectKey,
   getMethodName,
 } from '../config/tagging.js';
 import { isParamRequired } from './reqparams.js';
@@ -168,7 +169,7 @@ export function tagOperations(openapiDoc, service, debug) {
         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
         openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
         openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
-
+        getObjectKey(service, operationId, debug) ? openapiDoc.paths[path][verb]['x-stackQL-method'] = getObjectKey(service, operationId, debug) : null;
         // console.log(`resource: ${service}.${resource}`);
         // console.log(`operationId: ${operationId}`);
         // console.log(`method: ${getMethodName(service, operationId, debug)}`);
