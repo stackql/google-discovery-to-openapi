@@ -20,8 +20,20 @@ export const resourceNameOverridesByOperationId = {
         'discoveryengine.projects.locations.collections.dataStores.siteSearchEngine.operations.list' : 'search_engine_operations',
         'discoveryengine.projects.locations.collections.dataStores.siteSearchEngine.targetSites.operations.list' : 'target_site_operations',
     },
+    firestore: {
+        'firestore.projects.databases.documents.createDocument' : 'documents',
+        'firestore.projects.databases.documents.listen' : 'documents',
+        'firestore.projects.databases.documents.listDocuments' : 'documents',
+    },
+    iam: {
+        'iam.policies.listPolicies' : 'policies',
+        'iam.policies.createPolicy' : 'policies',
+    },
     integrations: {
         'integrations.projects.locations.integrations.executeEvent' : 'skip_this_resource',
+    },
+    networkconnectivity: {
+        'networkconnectivity.projects.locations.global.hubs.listSpokes' : 'spokes',
     },
     osconfig: {
         'osconfig.projects.locations.instances.vulnerabilityReports.get' : 'vulnerability_report',
@@ -92,6 +104,21 @@ export const resourceNameOverridesByOperationId = {
 };
 
 export const objectKeyByOperationId = {
+    aiplatform: {
+        'aiplatform.projects.locations.models.listVersions' : '$.models',
+    },
+    analyticshub: {
+        'analyticshub.projects.locations.dataExchanges.listSubscriptions' : '$.sharedResourceSubscriptions',
+        'analyticshub.projects.locations.dataExchanges.listings.listSubscriptions' : '$.sharedResourceSubscriptions',
+    },
+    apigee: {
+        'apigee.organizations.securityProfiles.listRevisions' : '$.securityProfiles',    
+    },
+    apigeeregistry: {
+        'apigeeregistry.projects.locations.apis.deployments.listRevisions' : '$.apiDeployments',
+        'apigeeregistry.projects.locations.apis.versions.specs.listRevisions' : '$.apiSpecs',
+
+    },
     apigateway: {
         'apigateway.projects.locations.apis.list' : '$.apis',
         'apigateway.projects.locations.apis.configs.list' : '$.apiConfigs',
@@ -121,6 +148,10 @@ export const objectKeyByOperationId = {
     },
     blockchainnodeengine: {
         'blockchainnodeengine.projects.locations.blockchainNodes.list' : '$.blockchainNodes',
+    },
+    compute: {
+        'compute.routers.getNatMappingInfo' : '$.result',
+        'compute.projects.getXpnResources' : '$.resources',
     },
     certificatemanager: {
         'certificatemanager.projects.locations.certificateMaps.certificateMapEntries.list' : '$.certificateMapEntries',
@@ -152,6 +183,8 @@ export const objectKeyByOperationId = {
         'dataflow.projects.locations.jobs.list' : '$.jobs',
         'dataflow.projects.jobs.messages.list' : '$.jobMessages',
         'dataflow.projects.jobs.list' : '$.jobs',
+        'dataflow.projects.locations.jobs.getExecutionDetails' : '$.stages',
+        'dataflow.projects.locations.jobs.stages.getExecutionDetails' : '$.workers',
     },
     dataform: {
         'dataform.projects.locations.repositories.list' : '$.repositories',
@@ -194,13 +227,13 @@ export const objectKeyByOperationId = {
         'file.projects.locations.backups.list' : '$.backups',
         'file.projects.locations.instances.list' : '$.instances',
     },
+    firestore: {
+        'firestore.projects.databases.documents.listDocuments' : '$.documents',
+    },
     gkebackup: {
         'gkebackup.projects.locations.backupPlans.list' : '$.backupPlans',
         'gkebackup.projects.locations.restorePlans.restores.list' : '$.restores',
         'gkebackup.projects.locations.restorePlans.list' : '$.restorePlans',
-    },
-    gkehub: {
-        'gkehub.projects.locations.memberships.list' : '$.memberships',
     },
     gkeonprem: {
         'gkeonprem.projects.locations.vmwareAdminClusters.list' : '$.vmwareAdminClusters',
@@ -209,6 +242,12 @@ export const objectKeyByOperationId = {
         'gkeonprem.projects.locations.vmwareClusters.list' : '$.vmwareClusters',
         'gkeonprem.projects.locations.vmwareClusters.vmwareNodePools.list' : '$.vmwareNodePools',
         'gkeonprem.projects.locations.bareMetalAdminClusters.list' : '$.bareMetalAdminClusters',
+    },
+    healthcare: {
+        'healthcare.projects.locations.datasets.consentStores.consents.listRevisions' : '$.consents',
+    },
+    iam: {
+        'iam.policies.listPolicies' : '$.policies',
     },
     ids: {
         'ids.projects.locations.endpoints.list' : '$.endpoints',
@@ -259,6 +298,7 @@ export const objectKeyByOperationId = {
         'networkconnectivity.projects.locations.global.hubs.groups.list' : '$.groups',
         'networkconnectivity.projects.locations.global.hubs.list' : '$.hubs',
         'networkconnectivity.projects.locations.serviceConnectionPolicies.list' : '$.serviceConnectionPolicies',
+        'networkconnectivity.projects.locations.global.hubs.listSpokes' : '$.spokes',
     },
     networkmanagement: {
         'networkmanagement.projects.locations.global.connectivityTests.list' : '$.resources',
@@ -268,12 +308,17 @@ export const objectKeyByOperationId = {
         'networksecurity.projects.locations.gatewaySecurityPolicies.rules.list' : '$.gatewaySecurityPolicyRules',
         'networksecurity.projects.locations.gatewaySecurityPolicies.list' : '$.gatewaySecurityPolicies',
         'networksecurity.projects.locations.tlsInspectionPolicies.list' : '$.tlsInspectionPolicies',
+        'networksecurity.projects.locations.addressGroups.listReferences' : '$.addressGroupReferences',
+        'networksecurity.organizations.locations.addressGroups.listReferences' : '$.addressGroupReferences',
     },
     networkservices: {
         'networkservices.projects.locations.gateways.list' : '$.gateways',
     },
     notebooks: {
         'notebooks.projects.locations.instances.list' : '$.instances',
+    },
+    osconfig: {
+        'osconfig.projects.locations.osPolicyAssignments.listRevisions' : '$.osPolicyAssignments',
     },
     privateca: {
         'privateca.projects.locations.certificateTemplates.list' : '$.certificateTemplates',
@@ -282,8 +327,16 @@ export const objectKeyByOperationId = {
         'privateca.projects.locations.caPools.certificates.list' : '$.certificates',
         'privateca.projects.locations.caPools.list' : '$.caPools',
     },
+    pubsub: {
+        'pubsub.projects.schemas.listRevisions' : '$.schemas',
+    },
     redis: {
         'redis.projects.locations.instances.list' : '$.instances',
+    },
+    securitycenter: {
+        'securitycenter.folders.securityHealthAnalyticsSettings.customModules.listDescendant' : '$.securityHealthAnalyticsCustomModules',
+        'securitycenter.projects.securityHealthAnalyticsSettings.customModules.listDescendant' : '$.securityHealthAnalyticsCustomModules',
+        'securitycenter.organizations.securityHealthAnalyticsSettings.customModules.listDescendant' : '$.securityHealthAnalyticsCustomModules',
     },
     spanner: {
         'spanner.projects.instances.list' : '$.instances',
@@ -325,6 +378,8 @@ export const objectKeyByOperationId = {
         'workstations.projects.locations.workstationClusters.list' : '$.workstationClusters',
         'workstations.projects.locations.workstationClusters.workstationConfigs.list' : '$.workstationConfigs',
         'workstations.projects.locations.workstationClusters.workstationConfigs.workstations.list' : '$.workstations',
+        'workstations.projects.locations.workstationClusters.workstationConfigs.listUsable' : '$.workstationConfigs',
+        'workstations.projects.locations.workstationClusters.workstationConfigs.workstations.listUsable' : '$.workstations',
     },
 };
 

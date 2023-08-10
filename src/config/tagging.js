@@ -211,21 +211,17 @@ const googleDeleteMethods = [
     'delete',
 ];
 
-
-// export function getObjectKey(service, operationId, debug) {
-//     // Check if the service exists in the objectKeyByOperationId object
-//     if (objectKeyByOperationId[service]) {
-//         // Check if the operationId exists for the given service
-//         if (objectKeyByOperationId[service][operationId]) {
-//             return objectKeyByOperationId[service][operationId];
-//         }
-//     }
-
-//     // If the service or operationId doesn't exist, return false
-//     return false;
-// }
-
 export function getObjectKey(openapiDoc, service, operationId, debug) {
+
+    // Check if the service exists in the objectKeyByOperationId object
+    if (objectKeyByOperationId[service]) {
+        // Check if the operationId exists for the given service
+        if (objectKeyByOperationId[service][operationId]) {
+            return objectKeyByOperationId[service][operationId] === 'skip' ? false : objectKeyByOperationId[service][operationId];
+        }
+    }
+    // service or operationId doesn't exist, keep going
+
     // If the last token of the operationId is NOT "list", return false.
     if (!operationId.endsWith('.list')) {
         return false;
