@@ -5,6 +5,7 @@ import {
     sqlVerbOverrides,
     objectKeyByOperationId,
  } from './overrides.js';
+ import jsonpointer from 'jsonpointer';
 
 const exceptions = ['gitlab', 'github', 'dotcom'];
 
@@ -211,17 +212,77 @@ const googleDeleteMethods = [
 ];
 
 
-export function getObjectKey(service, operationId, debug) {
-    // Check if the service exists in the objectKeyByOperationId object
-    if (objectKeyByOperationId[service]) {
-        // Check if the operationId exists for the given service
-        if (objectKeyByOperationId[service][operationId]) {
-            return objectKeyByOperationId[service][operationId];
+// export function getObjectKey(service, operationId, debug) {
+//     // Check if the service exists in the objectKeyByOperationId object
+//     if (objectKeyByOperationId[service]) {
+//         // Check if the operationId exists for the given service
+//         if (objectKeyByOperationId[service][operationId]) {
+//             return objectKeyByOperationId[service][operationId];
+//         }
+//     }
+
+//     // If the service or operationId doesn't exist, return false
+//     return false;
+// }
+
+export function getObjectKey(openapiDoc, service, operationId, debug) {
+    // If the last token of the operationId is NOT "list", return false.
+    if (!operationId.endsWith('.list')) {
+        return false;
+    }
+
+    // Retrieve the response schema reference for a successful response.
+    let schemaRef;
+    for (const path of Object.keys(openapiDoc.paths)) {
+        for (const verb of Object.keys(openapiDoc.paths[path])) {
+            if (verb === 'get' && openapiDoc.paths[path][verb].operationId === operationId) {
+                const responseContent = openapiDoc.paths[path][verb]['responses']['200']['content'];
+                if (responseContent && responseContent['application/json'] && responseContent['application/json']['schema']) {
+                    schemaRef = responseContent['application/json']['schema']['$ref'];
+                }
+            }
         }
     }
 
-    // If the service or operationId doesn't exist, return false
-    return false;
+    if (!schemaRef) {
+        return false;  // No valid schema reference found.
+    }
+
+    // Convert the schemaRef (which looks like "#/components/schemas/MySchema") to a JSON Pointer.
+    const jsonPointerPath = schemaRef.replace('#', '');
+
+    // Use the pointer to get the desired object.
+    const schemaObj = jsonpointer.get(openapiDoc, jsonPointerPath);
+
+    if (!schemaObj) {
+        logger.error(`Could not find schema object for pointer '${jsonPointerPath}' from schemaRef '${schemaRef}'`);
+        return false;
+    }
+
+    // Check for presence of "nextPageToken".
+    if (!schemaObj.properties || !schemaObj.properties['nextPageToken']) {
+        return false;
+    }
+
+    // Find array properties sibling to "nextPageToken".
+    const arrayProperties = [];
+    for (const propName of Object.keys(schemaObj.properties)) {
+        if (schemaObj.properties[propName].type === 'array' && propName !== 'nextPageToken') {
+            arrayProperties.push(propName);
+        }
+    }
+
+    if (arrayProperties.length === 0) {
+        return false;
+    } else if (arrayProperties.length > 1) {
+        // Log a warning if multiple array types are found.
+        logger.warn(`multiple array types found for operationId : ${operationId}, arrayProperties : ${JSON.stringify(arrayProperties)}`);
+    }
+
+    // Return the name of the array, prefixed with "$.".
+    const xStackQLObjectKey = `$.${arrayProperties[0]}`;
+    return xStackQLObjectKey;
+
 }
 
 export function getSQLVerb(service, resource, action, operationId, httpPath, httpVerb, operationObj, schemasObj, debug) {
@@ -229,6 +290,11 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
+    // if resource ends with '_iam_policies' and last token of 'operationId' is 'getIamPolicy' return 'select'
+    if (resource.endsWith('_iam_policies') && operationId.endsWith('.getIamPolicy')) {
+        return 'select';
+    }
+    
     // check if action equals or starts with a select method
     if (googleSelectMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'get') {
         sqlVerb = 'select';

@@ -169,7 +169,14 @@ export function tagOperations(openapiDoc, service, debug) {
         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
         openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
         openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
-        getObjectKey(service, operationId, debug) ? openapiDoc.paths[path][verb]['x-stackQL-method'] = getObjectKey(service, operationId, debug) : null;
+        // getObjectKey(openapiDoc, service, operationId, debug) ? openapiDoc.paths[path][verb]['x-stackQL-method'] = getObjectKey(openapiDoc, service, operationId, debug) : null;
+
+        const objectKey = getObjectKey(openapiDoc, service, operationId, debug);
+
+        if (objectKey) {
+            openapiDoc.paths[path][verb]['x-stackQL-objectKey'] = objectKey;
+        }
+        
         // console.log(`resource: ${service}.${resource}`);
         // console.log(`operationId: ${operationId}`);
         // console.log(`method: ${getMethodName(service, operationId, debug)}`);
