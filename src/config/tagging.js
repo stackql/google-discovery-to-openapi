@@ -222,6 +222,13 @@ export function getObjectKey(openapiDoc, service, operationId, debug) {
     }
     // service or operationId doesn't exist, keep going
 
+    // If the last token of the operationId is getIamPolicy, return '$.bindings'.
+    if (operationId.endsWith('.getIamPolicy')) {
+        return '$.bindings';
+    }
+
+    // its not a getIamPolicy operation, keep going
+
     // If the last token of the operationId is NOT "list", return false.
     if (!operationId.endsWith('.list')) {
         return false;
