@@ -229,10 +229,25 @@ export function getObjectKey(openapiDoc, service, operationId, debug) {
 
     // its not a getIamPolicy operation, keep going
 
-    // If the last token of the operationId is NOT "list", return false.
-    if (!operationId.endsWith('.list')) {
+    // If the last token of the operationId is NOT "list" or "aggregatedList" or does not start with "list", return false.
+    const lastToken = operationId.split('.').pop();
+
+    if (lastToken != 'list' && !lastToken.startsWith('list') && lastToken != 'aggregatedList') {
         return false;
     }
+
+    // is is a compute resource
+    if (service === 'compute') {
+        // get the second to last token of operationId
+        const secondToLastToken = operationId.split('.')[operationId.split('.').length - 2];
+        if (lastToken === 'aggregatedList') {
+            return `$.items[*].${secondToLastToken}[*]`;
+        } else {
+            return false;
+        }
+    };
+
+    // its not a compute resource, keep going
 
     // Retrieve the response schema reference for a successful response.
     let schemaRef;
@@ -303,6 +318,11 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
         sqlVerb = 'select';
     }
 
+    // aggregatedList methods
+    if (operationId.endsWith('.aggregatedList')) {
+        sqlVerb = 'select';
+    }    
+
     // check if action equals or starts with an insert method
     if (googleInsertMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
         sqlVerb = 'insert';
@@ -313,7 +333,7 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
         sqlVerb = 'delete';
     }
 
-    sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
+    // sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
 
     // override by exception by service
     sqlVerb = getSqlVerbOverride(service, sqlVerb, operationId);
