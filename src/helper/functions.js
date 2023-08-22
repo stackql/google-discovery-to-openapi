@@ -132,15 +132,21 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
       pathsObj[path][verb] = { description: description, operationId: operationId };
       if ('request' in methodsObj[method]) {
         const reqRef = methodsObj[method]['request']['$ref'];
-        pathsObj[path][verb]['requestBody'] = {
-          content: {
-            'application/json': {
-              schema: {
-                '$ref': `#/components/schemas/${reqRef}`,
+
+        // wierd one with a datalineage post method...
+        if(reqRef) {
+          pathsObj[path][verb]['requestBody'] = {
+            content: {
+              'application/json': {
+                schema: {
+                  '$ref': `#/components/schemas/${reqRef}`,
+                },
               },
             },
-          },
-        };
+          };
+        } else {
+          logger.warn(`No req body for ${path}:${verb}...`)
+        }
       }
       pathsObj[path][verb]['security'] = getMethodScopes(methodsObj[method]);
       if ('response' in methodsObj[method]) {
