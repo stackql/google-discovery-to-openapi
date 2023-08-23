@@ -31,6 +31,9 @@ function getOpParams(method, paramOrder, path, verb) {
         const finalParam = {};
         finalParam['in'] = 'path';
         finalParam['name'] = token.replace('{', '').replace('}', '').split(':')[0];
+        if(finalParam['name'] === 'parent'){
+          console.log(`found a parent in ${path}...`)
+        }
         finalParam['required'] = true;
         finalParam['schema'] = { type: 'string' };
         paramListFinal.push(finalParam);
@@ -120,8 +123,12 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
           path = getValidPath(methodsObj[method]['path'].split(':')[0]).replace('+', '');
         }
       }
-  
-      // TODO FIX serviceusage
+
+      // TODO FIX serviceusage, cloudasset, etc
+      if (path.includes('{parent}')) {
+        console.log("Path contains '{parent}'");
+        path = path.replace('{parent}', '{parentType}/{parent}');
+      }
       
       if (!(path in pathsObj)) {
         debug ? logger.debug(`Adding ${path} path and global params...`) : null;
