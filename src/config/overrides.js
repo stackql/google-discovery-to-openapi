@@ -170,6 +170,7 @@ export const objectKeyByOperationId = {
         'compute.routers.getNatMappingInfo' : '$.result',
         'compute.projects.getXpnResources' : '$.resources',
         'compute.globalOperations.aggregatedList' : '$.items[*].operations[*]',
+        'compute.regionCommitments.aggregatedList' : '$.items[*].commitments[*]',
     },
     dataflow: {
         'dataflow.projects.jobs.list' : '$.jobs',
