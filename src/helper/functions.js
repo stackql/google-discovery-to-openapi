@@ -71,6 +71,14 @@ function getResponse(respSchema) {
       },
     };
 }
+
+function getEmptyResponse() {
+  return {
+    '204': {
+      description: 'No Content'
+    }
+  };
+}
     
 function getMethodScopes(obj) {
     const scopes = [];
@@ -154,6 +162,8 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
       pathsObj[path][verb]['security'] = getMethodScopes(methodsObj[method]);
       if ('response' in methodsObj[method]) {
         pathsObj[path][verb]['responses'] = getResponse(methodsObj[method]['response']['$ref']);
+      } else {
+        pathsObj[path][verb]['responses'] = getEmptyResponse();
       }
       const parameterOrder = 'parameterOrder' in methodsObj[method] ? methodsObj[method]['parameterOrder'] : [];
       if ('parameters' in methodsObj[method]) {

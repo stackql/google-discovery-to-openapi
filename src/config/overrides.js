@@ -321,7 +321,7 @@ export const objectKeyByOperationId = {
         'sql.instances.list' : '$.items',
     },
     storage: {
-        'storage.objects.list' : '$.prefixes',
+        'storage.objects.list' : '$.items',
     },
     tpu: {
         'tpu.projects.locations.runtimeVersions.list' : '$.runtimeVersions',
@@ -383,6 +383,9 @@ export const sqlVerbOverrides = {
     },
     identitytoolkit: {
         'identitytoolkit.relyingparty.getPublicKeys' : 'exec',
+    },
+    logging: {
+        'logging.locations.operations.list' : 'exec',
     },
     osconfig: {
         'osconfig.projects.locations.instances.inventories.get' : 'exec',
