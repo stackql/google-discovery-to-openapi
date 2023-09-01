@@ -166,6 +166,9 @@ export const objectKeyByOperationId = {
     contactcenteraiplatform: {
         'contactcenteraiplatform.projects.locations.contactCenters.list' : '$.contactCenters',
     },
+    container: {
+        'container.projects.locations.clusters.list' : '$.clusters',
+    },
     compute: {
         'compute.routers.getNatMappingInfo' : '$.result',
         'compute.projects.getXpnResources' : '$.resources',
