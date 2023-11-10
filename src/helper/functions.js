@@ -309,7 +309,7 @@ export function populateSecuritySchemes(authObj) {
       paramsObj[key.replace('$.', '_.')] = {
         description: inputParams[key]['description'],
         in: inputParams[key]['location'],
-        name: key.replace('$.', '_.'),
+        name: key,
         schema: schemaObj,
       };
     }
