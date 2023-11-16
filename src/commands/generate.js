@@ -187,6 +187,7 @@ export async function generateSpecs(options, rootDir) {
             });
         }
 
+
         // get document for each service, check if oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
         logger.info('Checking OAuth scopes...');
         for(let service of services){
@@ -197,29 +198,25 @@ export async function generateSpecs(options, rootDir) {
 
                 let svcDir = path.join(providerDir, service.name);
 
-                // check if svcData.oauth2.scopes includes a key named "https://www.googleapis.com/auth/cloud-platform"
-                if(svcData['auth']){
-                    if(svcData['auth']['oauth2']){
-                        if(svcData['auth']['oauth2']['scopes']){
-                            if(svcData['auth']['oauth2']['scopes']['https://www.googleapis.com/auth/cloud-platform']){
-                                if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
-                                    // its a firebase service
-                                    if(provider === 'firebase'){
-                                        logger.info(`--------------------------------------`);
-                                        logger.info(`processing service ${service.name} ...`);
-                                        logger.info(`--------------------------------------`);
-                                        createDir(svcDir, debug);
-                                        await processService(service.name, svcData, svcDir, debug);                                        
-                                    }
-                                } else {
-                                    if(provider === 'googleapis.com'){
-                                        logger.info(`--------------------------------------`);
-                                        logger.info(`processing service ${service.name} ...`);
-                                        logger.info(`--------------------------------------`);
-                                        createDir(svcDir, debug);
-                                        await processService(service.name, svcData, svcDir, debug);                                        
-                                    }
-                                }
+                // check if svcData.auth.oauth2.scopes includes any key
+                if(svcData['auth'] && svcData['auth']['oauth2'] && svcData['auth']['oauth2']['scopes']){
+                    if(Object.keys(svcData['auth']['oauth2']['scopes']).length > 0){
+                        if(service.name.includes('firebase') || service.name.includes('toolresults') || service.name.includes('fcm')){
+                            // its a firebase service
+                            if(provider === 'firebase'){
+                                logger.info(`--------------------------------------`);
+                                logger.info(`processing service ${service.name} ...`);
+                                logger.info(`--------------------------------------`);
+                                createDir(svcDir, debug);
+                                await processService(service.name, svcData, svcDir, debug);                                        
+                            }
+                        } else {
+                            if(provider === 'googleapis.com'){
+                                logger.info(`--------------------------------------`);
+                                logger.info(`processing service ${service.name} ...`);
+                                logger.info(`--------------------------------------`);
+                                createDir(svcDir, debug);
+                                await processService(service.name, svcData, svcDir, debug);                                        
                             }
                         }
                     }
