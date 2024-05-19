@@ -162,10 +162,28 @@ export async function generateSpecs(options, rootDir) {
         // only for googleapis.com and firebase
         //
 
+        const additionalServiceData = [
+            {
+                name: "cloudcommerceprocurement",
+                id: "cloudcommerceprocurement:v1",
+                version: "v1",
+                title: "Cloud Commerce Partner Procurement API",
+                description: "Partner API for the Cloud Commerce Procurement Service.",
+                discoveryRestUrl: "https://cloudcommerceprocurement.googleapis.com/$discovery/rest?version=v1",
+                icons: {
+                    x16: "http://www.google.com/images/icons/product/search-32.gif",
+                    x32: "http://www.google.com/images/icons/product/search-16.gif"
+                  },
+                documentationLink: "https://cloud.google.com/marketplace/docs/partners/",
+                preferred: true
+            },
+        ];
+
         // filter services by preferred
         let services = [];
         if(preferred){
             services = rootData.items.filter(item => item.preferred === true);
+            services = services.concat(additionalServiceData);
         } else {
             // TODO implement support for nonpreferred APIs
             let betaServices = [];
