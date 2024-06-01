@@ -50,7 +50,7 @@ function getOpParams(method, paramOrder, path, verb) {
             finalParam['required'] = true;
           }
         }
-        finalParam['schema'] = { type: param['type'] };
+        finalParam['schema'] = { type: param['type'], format: param['format'] };
         paramListFinal.push(finalParam);
       }
     }
@@ -299,6 +299,11 @@ export function populateSecuritySchemes(authObj) {
         schemaObj = {
           type: inputParams[key]['type'],
           enum: inputParams[key]['enum'],
+        };
+      } else if ('format' in inputParams[key]) {
+        schemaObj = {
+          type: inputParams[key]['type'],
+          format: inputParams[key]['format'],
         };
       } else {
         schemaObj = {
