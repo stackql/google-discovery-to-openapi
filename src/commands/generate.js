@@ -1,6 +1,7 @@
 import { logger } from '../util/logging.js';
 import { 
     createOrCleanDir, 
+    removeProviderIndexFile,
     createDir, 
     writeFile 
 } from '../util/filesystem.js';
@@ -10,11 +11,14 @@ import {
     replaceSchemaRefs, 
     processParameters, 
     populatePaths,
-    tagOperations,
+    addStackQLResources,
 } from '../helper/functions.js';
 import * as path from 'path';
 import fetch from 'node-fetch';
 import * as yaml from 'js-yaml';
+
+import fs from 'fs';
+
 
 const rootDiscoveryUrl = {
     'googleapis.com': 'https://discovery.googleapis.com/discovery/v1/apis',
@@ -36,6 +40,67 @@ const baseOpenApiDoc = {
     components: {},
     paths: {}
 };
+
+/*
+*  provider index creation function
+*/
+
+const configObj = {
+    auth: {
+        credentialsenvvar: 'GOOGLE_CREDENTIALS',
+        type: 'service_account'
+    }
+};
+
+async function generateProviderIndex(provider, servicesDir, providerDir, configObj, debug) {
+    const version = 'v00.00.00000';
+    const providerServices = {};
+
+    const providerName = provider === 'googleapis.com' ? 'google' : provider;
+
+    // Read all YAML files in the servicesDir directory
+    const files = fs.readdirSync(servicesDir);
+
+    for (const file of files) {
+        if (path.extname(file) === '.yaml') {
+            const filePath = path.join(servicesDir, file);
+            const fileContent = fs.readFileSync(filePath, 'utf8');
+            const apiSpec = yaml.parse(fileContent);
+
+            const serviceName = path.basename(file, '.yaml');
+            const info = apiSpec.info;
+
+            providerServices[serviceName] = {
+                id: `${serviceName}:${version}`,
+                name: serviceName,
+                preferred: true,
+                service: {
+                    $ref: `${provider}/${version}/services/${serviceName}.yaml`
+                },
+                title: info.title,
+                version: version,
+                description: info.description,
+            };
+        }
+    }
+
+    const providerYaml = {
+        id: providerName,
+        name: providerName,
+        version: version,
+        providerServices: providerServices,
+        config: configObj
+    };
+
+    // Ensure the provider directory exists
+    if (!fs.existsSync(providerDir)) {
+        fs.mkdirSync(providerDir, { recursive: true });
+    }
+
+    // Write the provider YAML to the provider.yaml file
+    await writeFile(path.join(providerDir, 'provider.yaml'), yaml.stringify(providerYaml), debug)
+    debug ? logger.debug(`provider index generated at: ${outputFilePath}`) : null;
+}
 
 /*
 *  service processing function
@@ -93,9 +158,9 @@ async function processService(serviceName, serviceData, serviceDir, debug){
         debug ? logger.debug('populating paths..') : null;
         openApiDoc['paths'] = populatePaths({}, serviceData.resources, paramRefList, debug);
 
-        // tag operations
-        debug ? logger.debug('tagging operations..') : null;
-        openApiDoc = tagOperations(openApiDoc, serviceName, debug);
+        // add stackql resources
+        debug ? logger.debug('adding stackQL resources...') : null;
+        openApiDoc = addStackQLResources(openApiDoc, serviceName, debug);
 
         // remove problematic operations
         debug ? logger.debug('removing problem paths..') : null;
@@ -128,6 +193,8 @@ export async function generateSpecs(options, rootDir) {
     let outputDir = options.output;
     const provider = options.provider;
     
+    const requiredGCPScope = 'https://www.googleapis.com/auth/cloud-platform';
+
     // make sure provider is one of 'googleapis.com', 'firebase', or 'googleadmin'
     if(provider !== 'googleapis.com' && provider !== 'firebase' && provider !== 'googleadmin'){
         logger.error('invalid service specified, exiting...');
@@ -146,12 +213,14 @@ export async function generateSpecs(options, rootDir) {
     logger.info(`output directory: ${outputDir}`);
 
     // create spec directory
-    let providerDir = path.join(outputDir, provider, 'v00.00.00000', 'services');
+    const providerDir = path.join(outputDir, provider, 'v00.00.00000'); 
+    let servicesDir = path.join(providerDir, 'services');
     if(!preferred && provider != 'googleadmin'){
-        providerDir = path.join(outputDir, provider == 'googleapis.com' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
+        servicesDir = path.join(outputDir, provider == 'googleapis.com' ? 'google_beta' : `${provider}_beta`, 'v00.00.00000', 'services');
     }
-    createOrCleanDir(providerDir, debug);
-
+    createOrCleanDir(servicesDir, debug);
+    removeProviderIndexFile(providerDir, debug);
+    
     // get root discovery document
     logger.info('Getting root discovery document...');
     const rootResp = await fetch(rootDiscoveryUrl[provider]);
@@ -214,8 +283,6 @@ export async function generateSpecs(options, rootDir) {
                 const svcResp = await fetch(service.discoveryRestUrl);
                 const svcData = await svcResp.json();
 
-                let svcDir = path.join(providerDir, service.name);
-
                 // check if svcData.auth.oauth2.scopes includes any key
                 if(svcData['auth'] && svcData['auth']['oauth2'] && svcData['auth']['oauth2']['scopes']){
                     if(Object.keys(svcData['auth']['oauth2']['scopes']).length > 0){
@@ -225,16 +292,18 @@ export async function generateSpecs(options, rootDir) {
                                 logger.info(`--------------------------------------`);
                                 logger.info(`processing service ${service.name} ...`);
                                 logger.info(`--------------------------------------`);
-                                createDir(svcDir, debug);
-                                await processService(service.name, svcData, svcDir, debug);                                        
+                                await processService(service.name, svcData, servicesDir, debug);                                        
                             }
                         } else {
                             if(provider === 'googleapis.com'){
-                                logger.info(`--------------------------------------`);
-                                logger.info(`processing service ${service.name} ...`);
-                                logger.info(`--------------------------------------`);
-                                createDir(svcDir, debug);
-                                await processService(service.name, svcData, svcDir, debug);                                        
+                                if (Object.keys(svcData.auth.oauth2.scopes).includes(requiredGCPScope)) {
+                                    logger.info(`--------------------------------------`);
+                                    logger.info(`processing service ${service.name} ...`);
+                                    logger.info(`--------------------------------------`);
+                                    await processService(service.name, svcData, servicesDir, debug);                                   
+                                } else {
+                                    logger.info(`service ${service.name} does not have required GCP scope, skipping...`);
+                                }
                             }
                         }
                     }
@@ -250,14 +319,12 @@ export async function generateSpecs(options, rootDir) {
         //
         // googleadmin
         //
-
         logger.info(`processing googleadmin.directory...`);
-
-        let svcDir = path.join(providerDir, 'directory');
-        createDir(svcDir, debug);
-        await processService('directory', rootData, svcDir, debug);
-
+        await processService('directory', rootData, servicesDir, debug);
     }
+
+    // add provider.yaml file
+    await generateProviderIndex(provider, servicesDir, providerDir, configObj, debug);
 
     const runtime = Math.round(process.uptime() * 100) / 100;
     logger.info(`generate completed in ${runtime}s. ${services.length} files generated.`);
