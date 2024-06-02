@@ -21,7 +21,7 @@ Mac/Linux:
 
 ```bash
 npm install
-bin/google-discovery-to-openapi.mjs generate googleapis.com
+bin/google-discovery-to-openapi.mjs generate googleapis.com --debug
 ```
 
 Windows/PowerShell:
@@ -29,4 +29,29 @@ Windows/PowerShell:
 ```powershell
 npm install
 node .\bin\google-discovery-to-openapi.mjs generate
+```
+
+## Tests
+
+To Run tests locally, clone [stackql-provider-tests](https://github.com/stackql/stackql-provider-tests), and run locally:
+
+```bash
+# run from the directory you cloned into
+cd ../../stackql-provider-tests/
+sh test-provider.sh \
+google \
+false \
+/mnt/c/LocalGitRepos/stackql/openapi-conversion/google-discovery-to-openapi/openapi \
+true
+```
+
+## Publish to the StackQL Provider Registry
+
+Raise a PR to add the provider from `openapi/src` to the [stackql-provider-registry](https://github.com/stackql/stackql-provider-registry/tree/dev/providers/src).  Once merged into the `dev` branch it will be tested and deployed to the `dev` registry, which can be accessed via:
+
+```bash
+# use the following to test from the dev provider registry with interactiva authentication
+AUTH='{ "google": { "type": "interactive" }}'
+export DEV_REG="{ \"url\": \"https://registry-dev.stackql.app/providers\" }"
+./stackql --auth="${AUTH}" --registry="${DEV_REG}" shell
 ```

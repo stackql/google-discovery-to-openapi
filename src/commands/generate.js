@@ -53,6 +53,9 @@ const configObj = {
 };
 
 async function generateProviderIndex(provider, servicesDir, providerDir, configObj, debug) {
+
+    logger.info(`generating provider index for ${provider}...`);
+
     const version = 'v00.00.00000';
     const providerServices = {};
 
@@ -62,25 +65,30 @@ async function generateProviderIndex(provider, servicesDir, providerDir, configO
     const files = fs.readdirSync(servicesDir);
 
     for (const file of files) {
-        if (path.extname(file) === '.yaml') {
-            const filePath = path.join(servicesDir, file);
-            const fileContent = fs.readFileSync(filePath, 'utf8');
-            const apiSpec = yaml.parse(fileContent);
-
-            const serviceName = path.basename(file, '.yaml');
-            const info = apiSpec.info;
-
-            providerServices[serviceName] = {
-                id: `${serviceName}:${version}`,
-                name: serviceName,
-                preferred: true,
-                service: {
-                    $ref: `${provider}/${version}/services/${serviceName}.yaml`
-                },
-                title: info.title,
-                version: version,
-                description: info.description,
-            };
+        try {			
+            debug ? logger.debug(`processing: ${file}`) : null;
+            if (path.extname(file) === '.yaml') {
+                const filePath = path.join(servicesDir, file);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const apiSpec = yaml.load(fileContent);
+    
+                const serviceName = path.basename(file, '.yaml');
+                const info = apiSpec.info;
+    
+                providerServices[serviceName] = {
+                    id: `${serviceName}:${version}`,
+                    name: serviceName,
+                    preferred: true,
+                    service: {
+                        $ref: `${provider}/${version}/services/${serviceName}.yaml`
+                    },
+                    title: info.title,
+                    version: version,
+                    description: info.description,
+                };
+            }
+        } catch (err) {
+            logger.error(`Error processing file ${file}: ${err.message}`);
         }
     }
 
@@ -94,11 +102,14 @@ async function generateProviderIndex(provider, servicesDir, providerDir, configO
 
     // Ensure the provider directory exists
     if (!fs.existsSync(providerDir)) {
+        debug ? logger.debug(`${providerDir} does not exist, creating...`) : null;
         fs.mkdirSync(providerDir, { recursive: true });
     }
 
     // Write the provider YAML to the provider.yaml file
-    await writeFile(path.join(providerDir, 'provider.yaml'), yaml.stringify(providerYaml), debug)
+    const outputFilePath = path.join(providerDir, 'provider.yaml');
+    debug ? logger.debug(`writing file to: ${outputFilePath}...`) : null;
+    await writeFile(outputFilePath, yaml.dump(providerYaml), debug);
     debug ? logger.debug(`provider index generated at: ${outputFilePath}`) : null;
 }
 
@@ -208,7 +219,7 @@ export async function generateSpecs(options, rootDir) {
     if(outputDir.startsWith('/') || outputDir.startsWith('C:\\')){
         debug ? logger.debug('absolute path supplied for output directory') : null;
     } else {
-        outputDir = path.join(rootDir, outputDir);
+        outputDir = path.join(rootDir, outputDir, 'src');
     }
     logger.info(`output directory: ${outputDir}`);
 
