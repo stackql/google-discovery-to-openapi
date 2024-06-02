@@ -177,35 +177,98 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
 *  exported functions 
 */
 
-export function tagOperations(openapiDoc, service, debug) {
-  const schemasObj = openapiDoc['components']['schemas'];
-  for (const path of Object.keys(openapiDoc.paths)) {
-    for (const verb of Object.keys(openapiDoc.paths[path])) {
-      if (verb !== 'parameters') {    
-        const operationId = openapiDoc.paths[path][verb].operationId;
-        const operationObj = openapiDoc.paths[path][verb];
-        const [resource, action] = getResource(service, operationId, debug);
-        openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
-        openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
-        openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
-        // getObjectKey(openapiDoc, service, operationId, debug) ? openapiDoc.paths[path][verb]['x-stackQL-method'] = getObjectKey(openapiDoc, service, operationId, debug) : null;
+// export function addStackQLResources(openapiDoc, service, debug) {
+//   const schemasObj = openapiDoc['components']['schemas'];
+//   for (const path of Object.keys(openapiDoc.paths)) {
+//     for (const verb of Object.keys(openapiDoc.paths[path])) {
+//       if (verb !== 'parameters') {    
+//         const operationId = openapiDoc.paths[path][verb].operationId;
+//         const operationObj = openapiDoc.paths[path][verb];
+//         const [resource, action] = getResource(service, operationId, debug);
+//         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
+//         openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
+//         openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
+//         // getObjectKey(openapiDoc, service, operationId, debug) ? openapiDoc.paths[path][verb]['x-stackQL-method'] = getObjectKey(openapiDoc, service, operationId, debug) : null;
 
-        const objectKey = getObjectKey(openapiDoc, service, operationId, debug);
+//         const objectKey = getObjectKey(openapiDoc, service, operationId, debug);
 
-        if (objectKey) {
-            openapiDoc.paths[path][verb]['x-stackQL-objectKey'] = objectKey;
-        }
+//         if (objectKey) {
+//             openapiDoc.paths[path][verb]['x-stackQL-objectKey'] = objectKey;
+//         }
         
-        // console.log(`resource: ${service}.${resource}`);
-        // console.log(`operationId: ${operationId}`);
-        // console.log(`method: ${getMethodName(service, operationId, debug)}`);
-        // console.log(`verb: ${getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug)}`);
+//         // console.log(`resource: ${service}.${resource}`);
+//         // console.log(`operationId: ${operationId}`);
+//         // console.log(`method: ${getMethodName(service, operationId, debug)}`);
+//         // console.log(`verb: ${getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug)}`);
 
+//       }
+//     }
+//   }
+//   return openapiDoc;
+// }
+
+export function generateStackQLResources(openapiDoc, service, debug) {
+  const schemasObj = openapiDoc['components']['schemas'];
+  const xStackQLResources = {};
+
+  for (const path of Object.keys(openapiDoc.paths)) {
+      for (const verb of Object.keys(openapiDoc.paths[path])) {
+          if (verb !== 'parameters') {
+              const operationId = openapiDoc.paths[path][verb].operationId;
+              const operationObj = openapiDoc.paths[path][verb];
+              const [resource, action] = getResource(service, operationId, debug);
+              const methodName = getMethodName(service, operationId, debug);
+              const sqlVerb = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
+              const objectKey = getObjectKey(openapiDoc, service, operationId, debug);
+
+              if (!xStackQLResources[resource]) {
+                  xStackQLResources[resource] = {
+                      id: `${service}.${resource}`,
+                      name: resource,
+                      title: resource.charAt(0).toUpperCase() + resource.slice(1),
+                      methods: {},
+                      sqlVerbs: {
+                          select: [],
+                          insert: [],
+                          update: [],
+                          delete: [],
+                      }
+                  };
+              }
+
+              const methodRef = `#/paths/${path.replace(/\//g, '~1')}/${verb}`;
+              const methodEntry = {
+                  operation: {
+                      $ref: methodRef,
+                  },
+                  response: {
+                      mediaType: 'application/json',
+                      openAPIDocKey: '200'
+                  }
+              };
+
+              if (objectKey) {
+                  methodEntry.response.objectKey = objectKey;
+                  xStackQLResources[resource].methods[`_${methodName}`] = {
+                      ...methodEntry
+                  };
+              }
+
+              xStackQLResources[resource].methods[methodName] = methodEntry;
+
+              if (sqlVerb && sqlVerb !== 'exec') {
+                  xStackQLResources[resource].sqlVerbs[sqlVerb].push({
+                      $ref: `#/components/x-stackQL-resources/${resource}/methods/${methodName}`
+                  });
+              }
+          }
       }
-    }
   }
+
+  openapiDoc['components']['x-stackQL-resources'] = xStackQLResources;
   return openapiDoc;
 }
+
 
 export function populatePaths(pathsObj, obj, paramsRefList, debug) {
     for (const key in obj) {

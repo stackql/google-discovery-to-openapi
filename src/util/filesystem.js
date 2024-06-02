@@ -36,3 +36,17 @@ export async function createOrCleanDir(dir, debug){
         logger.error(err);
     }        
 }
+
+export async function removeProviderIndexFile(dir, debug){
+    try {
+        const path = `${dir}/provider.yaml`;
+        if (fs.existsSync(path )){
+            debug ? logger.debug(`removing ${path}...`): null;
+            fs.rmSync(path, { force : true });
+        }
+        return true;
+    }
+    catch (err) {
+        logger.error(err);
+    }
+}
