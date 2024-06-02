@@ -11,7 +11,7 @@ import {
     replaceSchemaRefs, 
     processParameters, 
     populatePaths,
-    addStackQLResources,
+    generateStackQLResources,
 } from '../helper/functions.js';
 import * as path from 'path';
 import fetch from 'node-fetch';
@@ -160,7 +160,7 @@ async function processService(serviceName, serviceData, serviceDir, debug){
 
         // add stackql resources
         debug ? logger.debug('adding stackQL resources...') : null;
-        openApiDoc = addStackQLResources(openApiDoc, serviceName, debug);
+        openApiDoc = generateStackQLResources(openApiDoc, serviceName, debug);
 
         // remove problematic operations
         debug ? logger.debug('removing problem paths..') : null;
