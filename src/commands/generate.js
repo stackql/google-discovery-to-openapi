@@ -117,7 +117,7 @@ async function generateProviderIndex(provider, servicesDir, providerDir, configO
 *  service processing function
 */
 
-async function processService(serviceName, serviceData, serviceDir, debug){
+async function processService(provider, serviceName, serviceData, serviceDir, debug){
     try {
 
         // init openapi doc
@@ -171,7 +171,7 @@ async function processService(serviceName, serviceData, serviceDir, debug){
 
         // add stackql resources
         debug ? logger.debug('adding stackQL resources...') : null;
-        openApiDoc = generateStackQLResources(openApiDoc, serviceName, debug);
+        openApiDoc = generateStackQLResources(provider, openApiDoc, serviceName, debug);
 
         // remove problematic operations
         debug ? logger.debug('removing problem paths..') : null;
@@ -303,7 +303,7 @@ export async function generateSpecs(options, rootDir) {
                                 logger.info(`--------------------------------------`);
                                 logger.info(`processing service ${service.name} ...`);
                                 logger.info(`--------------------------------------`);
-                                await processService(service.name, svcData, servicesDir, debug);                                        
+                                await processService(provider, service.name, svcData, servicesDir, debug);                                        
                             }
                         } else {
                             if(provider === 'googleapis.com'){
@@ -311,7 +311,7 @@ export async function generateSpecs(options, rootDir) {
                                     logger.info(`--------------------------------------`);
                                     logger.info(`processing service ${service.name} ...`);
                                     logger.info(`--------------------------------------`);
-                                    await processService(service.name, svcData, servicesDir, debug);                                   
+                                    await processService('google', service.name, svcData, servicesDir, debug);                                   
                                 } else {
                                     logger.info(`service ${service.name} does not have required GCP scope, skipping...`);
                                 }
@@ -331,7 +331,7 @@ export async function generateSpecs(options, rootDir) {
         // googleadmin
         //
         logger.info(`processing googleadmin.directory...`);
-        await processService('directory', rootData, servicesDir, debug);
+        await processService('googleadmin', 'directory', rootData, servicesDir, debug);
     }
 
     // add provider.yaml file

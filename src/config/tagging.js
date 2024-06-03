@@ -308,6 +308,11 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
+    // if the operationId ends with 'patch' or 'update' return 'update'
+    if (operationId.endsWith('.patch') || operationId.endsWith('.update')) {
+        return 'update';
+    }
+
     // if resource ends with '_iam_policies' and last token of 'operationId' is 'getIamPolicy' return 'select'
     if (resource.endsWith('_iam_policies') && operationId.endsWith('.getIamPolicy')) {
         return 'select';

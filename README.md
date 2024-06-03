@@ -50,8 +50,10 @@ true
 Raise a PR to add the provider from `openapi/src` to the [stackql-provider-registry](https://github.com/stackql/stackql-provider-registry/tree/dev/providers/src).  Once merged into the `dev` branch it will be tested and deployed to the `dev` registry, which can be accessed via:
 
 ```bash
+# google cloud shell example...
+curl -L https://bit.ly/stackql-zip -O && unzip stackql-zip
 # use the following to test from the dev provider registry with interactiva authentication
+DEV_REG="{ \"url\": \"https://registry-dev.stackql.app/providers\" }"
 AUTH='{ "google": { "type": "interactive" }}'
-export DEV_REG="{ \"url\": \"https://registry-dev.stackql.app/providers\" }"
 ./stackql --auth="${AUTH}" --registry="${DEV_REG}" shell
 ```
