@@ -207,7 +207,7 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
 //   return openapiDoc;
 // }
 
-export function generateStackQLResources(openapiDoc, service, debug) {
+export function generateStackQLResources(provider, openapiDoc, service, debug) {
   const schemasObj = openapiDoc['components']['schemas'];
   const xStackQLResources = {};
 
@@ -219,11 +219,12 @@ export function generateStackQLResources(openapiDoc, service, debug) {
               const [resource, action] = getResource(service, operationId, debug);
               const methodName = getMethodName(service, operationId, debug);
               const sqlVerb = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
+              const numPathParams = path.split('/').filter(token => token.startsWith('{')).length;
               const objectKey = getObjectKey(openapiDoc, service, operationId, debug);
 
               if (!xStackQLResources[resource]) {
                   xStackQLResources[resource] = {
-                      id: `${service}.${resource}`,
+                      id: `${provider}.${service}.${resource}`,
                       name: resource,
                       title: resource.charAt(0).toUpperCase() + resource.slice(1),
                       methods: {},
@@ -258,10 +259,25 @@ export function generateStackQLResources(openapiDoc, service, debug) {
 
               if (sqlVerb && sqlVerb !== 'exec') {
                   xStackQLResources[resource].sqlVerbs[sqlVerb].push({
-                      $ref: `#/components/x-stackQL-resources/${resource}/methods/${methodName}`
+                      $ref: `#/components/x-stackQL-resources/${resource}/methods/${methodName} [${numPathParams}]`
                   });
               }
           }
+      }
+  }
+
+  // for each resource, order each sqlVerb from most specific to least specific
+  for (const resource in xStackQLResources) {
+      for (const verb in xStackQLResources[resource].sqlVerbs) {
+          xStackQLResources[resource].sqlVerbs[verb] = xStackQLResources[resource].sqlVerbs[verb].sort((a, b) => {
+              const aNumPathParams = parseInt(a.$ref.split('[')[1].split(']')[0]);
+              const bNumPathParams = parseInt(b.$ref.split('[')[1].split(']')[0]);
+              return bNumPathParams - aNumPathParams;
+          }).map(ref => {
+              return {
+                  $ref: ref.$ref.split(' [')[0]
+              };
+          });
       }
   }
 
