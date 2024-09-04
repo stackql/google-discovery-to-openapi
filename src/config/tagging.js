@@ -16,20 +16,60 @@ const exceptions = ['gitlab', 'github', 'dotcom'];
 const googleSelectMethods = [
     'aggregatedList',
     'get',
+    'batchGet',
     'list',
     'query',
+    'fetch',
+    'retrieve',
+];
+
+const googleSelectPOSTMethods = [
+    'get',
+    'list',
+    'fetch',
 ];
 
 const googleInsertMethods = [
     'insert',
     'create',
     'add',
+    'batchCreate',
+    'bulkInsert',
 ];
 
 const googleDeleteMethods = [
     'delete',
     'remove',
 ];
+
+const googleDeletePOSTMethods = [
+    'delete',
+    'destroy',
+    'batchDelete',
+    'bulkDelete',
+    'remove',
+];
+
+const googleUpdateMethods = [
+    'update',
+    'patch',
+];
+
+const googleUpdatePOSTMethods = [
+    'update',
+    'patch',
+    'batchUpdate',
+];
+
+const googleReplaceMethods = [
+    'update',
+    'replace',
+];
+
+const googleReplacePOSTMethods = [
+    'replace',
+];
+
 
 //
 // utility functions
@@ -350,23 +390,28 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     // update methods
     //
 
-    // if the operationId ends with 'patch' return 'update'
-    if (operationId.endsWith('.patch')) {
-        return 'update';
+    // check if action equals or starts with an update method
+    if (googleUpdateMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'patch') {
+        sqlVerb = 'update';
     }
-    
-    // if action starts with 'update' and httpVerb is 'patch' return 'update'
-    if (action.startsWith('update') && httpVerb === 'patch') {
-        return 'update';
+
+    // update POST exceptions
+    if (googleUpdatePOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'update';
     }
 
     //  
     // replace methods
     //
 
-    // if the operationId ends with 'put' or 'update' return 'replace'
-    if (operationId.endsWith('.put') || operationId.endsWith('.update')) {
-        return 'replace';
+    // check if action equals or starts with a replace method
+    if (googleReplaceMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'put') {
+        sqlVerb = 'replace';
+    }
+
+    // replace POST exceptions
+    if (googleReplacePOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'replace';
     }
 
     //
@@ -375,6 +420,11 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
 
     // check if action equals or starts with a delete method
     if (googleDeleteMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'delete') {
+        sqlVerb = 'delete';
+    }
+
+    // delete POST exceptions
+    if (googleDeletePOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
         sqlVerb = 'delete';
     }
 
@@ -387,10 +437,10 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
         sqlVerb = 'select';
     }
 
-
-    //compute.instances.deleteAccessConfig
-    //compute.instances.updateAccessConfig
-    //compute.instanceGroups.listInstances
+    // select POST exceptions
+    if (googleSelectPOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'select';
+    }
 
     // sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    
 

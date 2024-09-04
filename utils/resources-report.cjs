@@ -27,7 +27,7 @@ function resolveRef(spec, ref) {
 // Main function to generate the resources report CSV
 function generateResourcesReport(directory) {
     const files = fs.readdirSync(directory).filter(file => file.endsWith('.yaml'));
-    const csvRows = [['serviceName', 'resourceName', 'sqlVerb', 'httpVerb', 'opid', 'methodName', 'path', 'objectKey']];
+    const csvRows = [['serviceName', 'resourceName', 'sqlVerb', 'httpVerb', 'action', 'opid', 'methodName', 'path', 'objectKey']];
 
     files.forEach(file => {
         const filePath = path.join(directory, file);
@@ -84,17 +84,37 @@ function generateResourcesReport(directory) {
                             const pathVerbObj = spec.paths[pathString][httpVerb];
                             const opid = pathVerbObj.operationId;
                             const objectKey = method.response?.objectKey || '';
+                            const action = opid.split('.').pop();
 
-                            csvRows.push([
-                                serviceName,
-                                resourceName,
-                                sqlVerb,
-                                httpVerb,
-                                opid,
-                                methodName,
-                                pathString,
-                                objectKey,
-                            ]);
+                            // skip cases which dont need inspection
+                            if (sqlVerb === 'select' && httpVerb === 'get') {
+                                console.log('skipping...');
+                            } else if (sqlVerb === 'delete' && httpVerb === 'delete') {
+                                console.log('skipping...');
+                            } else if (sqlVerb === 'insert' && httpVerb === 'post') {
+                                console.log('skipping...');
+                            } else if (sqlVerb === 'update' && httpVerb === 'patch') {
+                                console.log('skipping...');
+                            } else if (sqlVerb === 'replace' && httpVerb === 'put') {
+                                console.log('skipping...');
+                            } else if (sqlVerb === 'select' && action === 'getIamPolicy') {
+                                console.log('skipping...');
+                            } else if (sqlVerb === 'replace' && action === 'setIamPolicy') {
+                                console.log('skipping...');                                
+                            } else {
+                                console.log('skipping...');
+                                // csvRows.push([
+                                //     serviceName,
+                                //     resourceName,
+                                //     sqlVerb,
+                                //     httpVerb,
+                                //     action,
+                                //     opid,
+                                //     methodName,
+                                //     pathString,
+                                //     objectKey,
+                                // ]);
+                            }
                         } catch (error) {
                             console.error(`Error processing method reference ${JSON.stringify(methodRef)} in file ${file}: ${error.message}`);
                         }
@@ -125,18 +145,26 @@ function generateResourcesReport(directory) {
                             const opid = pathVerbObj.operationId;
 
                             const objectKey = method.response?.objectKey || '';
+                            const action = opid.split('.').pop();
 
-                            csvRows.push([
-                                serviceName,
-                                resourceName,
-                                'exec', // Assign verb as 'exec'
-                                httpVerb,
-                                opid,
-                                methodName,
-                                pathString,
-                                objectKey,
-                                
-                            ]);
+
+                            // post	testIamPermissions
+                            if (httpVerb === 'post' && action === 'testIamPermissions') {
+                                console.log('skipping...');
+                            } else {
+                                csvRows.push([
+                                    serviceName,
+                                    resourceName,
+                                    'exec', // Assign verb as 'exec'
+                                    httpVerb,
+                                    action,
+                                    opid,
+                                    methodName,
+                                    pathString,
+                                    objectKey,
+                                    
+                                ]);
+                            }
                         } catch (error) {
                             console.error(`Error processing unassigned method ${methodName} in file ${file}: ${error.message}`);
                         }
