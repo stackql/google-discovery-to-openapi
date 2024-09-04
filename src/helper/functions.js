@@ -177,36 +177,6 @@ function processMethods(pathsObj, methodsObj, paramsRefList, debug) {
 *  exported functions 
 */
 
-// export function addStackQLResources(openapiDoc, service, debug) {
-//   const schemasObj = openapiDoc['components']['schemas'];
-//   for (const path of Object.keys(openapiDoc.paths)) {
-//     for (const verb of Object.keys(openapiDoc.paths[path])) {
-//       if (verb !== 'parameters') {    
-//         const operationId = openapiDoc.paths[path][verb].operationId;
-//         const operationObj = openapiDoc.paths[path][verb];
-//         const [resource, action] = getResource(service, operationId, debug);
-//         openapiDoc.paths[path][verb]['x-stackQL-resource'] = resource;
-//         openapiDoc.paths[path][verb]['x-stackQL-method'] = getMethodName(service, operationId, debug);
-//         openapiDoc.paths[path][verb]['x-stackQL-verb'] = getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug);
-//         // getObjectKey(openapiDoc, service, operationId, debug) ? openapiDoc.paths[path][verb]['x-stackQL-method'] = getObjectKey(openapiDoc, service, operationId, debug) : null;
-
-//         const objectKey = getObjectKey(openapiDoc, service, operationId, debug);
-
-//         if (objectKey) {
-//             openapiDoc.paths[path][verb]['x-stackQL-objectKey'] = objectKey;
-//         }
-        
-//         // console.log(`resource: ${service}.${resource}`);
-//         // console.log(`operationId: ${operationId}`);
-//         // console.log(`method: ${getMethodName(service, operationId, debug)}`);
-//         // console.log(`verb: ${getSQLVerb(service, resource, action, operationId, path, verb, operationObj, schemasObj, debug)}`);
-
-//       }
-//     }
-//   }
-//   return openapiDoc;
-// }
-
 export function generateStackQLResources(provider, openapiDoc, service, debug) {
   const schemasObj = openapiDoc['components']['schemas'];
   const xStackQLResources = {};
@@ -232,6 +202,7 @@ export function generateStackQLResources(provider, openapiDoc, service, debug) {
                           select: [],
                           insert: [],
                           update: [],
+                          replace: [],
                           delete: [],
                       }
                   };
@@ -244,16 +215,18 @@ export function generateStackQLResources(provider, openapiDoc, service, debug) {
                   },
                   response: {
                       mediaType: 'application/json',
-                      openAPIDocKey: '200'
+                      openAPIDocKey: '200',
                   }
               };
 
-              if (objectKey) {
-                  methodEntry.response.objectKey = objectKey;
-                  xStackQLResources[resource].methods[`_${methodName}`] = {
-                      ...methodEntry
-                  };
-              }
+              objectKey ? methodEntry.response.objectKey = objectKey : null;
+
+              // if (objectKey) {
+              //     methodEntry.response.objectKey = objectKey;
+              //     xStackQLResources[resource].methods[`_${methodName}`] = {
+              //         ...methodEntry
+              //     };
+              // }
 
               xStackQLResources[resource].methods[methodName] = methodEntry;
 
@@ -266,25 +239,35 @@ export function generateStackQLResources(provider, openapiDoc, service, debug) {
       }
   }
 
-  // for each resource, order each sqlVerb from most specific to least specific
+  // For each resource, order each sqlVerb from most specific to least specific
   for (const resource in xStackQLResources) {
-      for (const verb in xStackQLResources[resource].sqlVerbs) {
-          xStackQLResources[resource].sqlVerbs[verb] = xStackQLResources[resource].sqlVerbs[verb].sort((a, b) => {
-              const aNumPathParams = parseInt(a.$ref.split('[')[1].split(']')[0]);
-              const bNumPathParams = parseInt(b.$ref.split('[')[1].split(']')[0]);
-              return bNumPathParams - aNumPathParams;
-          }).map(ref => {
-              return {
-                  $ref: ref.$ref.split(' [')[0]
-              };
-          });
-      }
+    for (const verb in xStackQLResources[resource].sqlVerbs) {
+        // Sort the sqlVerbs based on the number of path parameters
+        xStackQLResources[resource].sqlVerbs[verb] = xStackQLResources[resource].sqlVerbs[verb]
+            .sort((a, b) => {
+                const aNumPathParams = parseInt(a.$ref.split('[')[1].split(']')[0]);
+                const bNumPathParams = parseInt(b.$ref.split('[')[1].split(']')[0]);
+                return bNumPathParams - aNumPathParams;
+            })
+            .map(ref => {
+                return { $ref: ref.$ref.split(' [')[0] };
+            });
+
+        // Remove duplicates while preserving order
+        const uniqueRefs = new Set();
+        xStackQLResources[resource].sqlVerbs[verb] = xStackQLResources[resource].sqlVerbs[verb].filter(ref => {
+            if (!uniqueRefs.has(ref.$ref)) {
+                uniqueRefs.add(ref.$ref);
+                return true;
+            }
+            return false;
+        });
+    }
   }
 
   openapiDoc['components']['x-stackQL-resources'] = xStackQLResources;
   return openapiDoc;
 }
-
 
 export function populatePaths(pathsObj, obj, paramsRefList, debug) {
     for (const key in obj) {
@@ -304,7 +287,7 @@ export function populatePaths(pathsObj, obj, paramsRefList, debug) {
       }
     }
     return pathsObj;
-  }
+}
   
 export function getCurrentDate() {
     const date = new Date();
@@ -346,9 +329,9 @@ export function populateSecuritySchemes(authObj) {
     securitySchemes['Oauth2c']['flows']['authorizationCode']['scopes'] = scopesTarget;
   
     return securitySchemes;
-  }
+}
 
-  export function replaceSchemaRefs(obj) {
+export function replaceSchemaRefs(obj) {
     for (const key in obj) {
       if (typeof obj[key] === 'object') {
         replaceSchemaRefs(obj[key]);
@@ -365,9 +348,9 @@ export function populateSecuritySchemes(authObj) {
       }
     }
     return obj;
-  }
+}
 
-  export function processParameters(inputParams) {
+export function processParameters(inputParams) {
     const paramsObj = {};
     const paramsRefList = [];
     for (const key in inputParams) {
@@ -398,4 +381,4 @@ export function populateSecuritySchemes(authObj) {
       };
     }
     return [paramsObj, paramsRefList];
-  }
+}

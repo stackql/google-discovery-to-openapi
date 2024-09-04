@@ -393,4 +393,7 @@ export const sqlVerbOverrides = {
     osconfig: {
         'osconfig.projects.locations.instances.inventories.get' : 'exec',
     },
+    spanner: {
+        'spanner.projects.instances.databases.dropDatabase' : 'delete',
+    },
 };

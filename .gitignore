@@ -8,3 +8,4 @@ stackql-aws-cloud-shell.sh
 stackql-azure-cloud-shell.sh
 stackql-google-cloud-shell.sh
 creds.json
+resources-report.csv

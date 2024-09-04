@@ -257,12 +257,58 @@ export async function generateSpecs(options, rootDir) {
                 documentationLink: "https://cloud.google.com/marketplace/docs/partners/",
                 preferred: true
             },
+            {
+                id: "iam:v2beta",
+                name: "iamv2beta",
+                version: "v2beta",
+                title: "Identity and Access Management (IAM) API",
+                description: "Manages identity and access control for Google Cloud resources, including the creation of service accounts, which you can use to authenticate to Google and make API calls. Enabling this API also enables the IAM Service Account Credentials API (iamcredentials.googleapis.com). However, disabling this API doesn't disable the IAM Service Account Credentials API.",
+                discoveryRestUrl: "https://iam.googleapis.com/$discovery/rest?version=v2beta",
+                icons: {
+                  x16: "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+                  x32: "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+                },
+                documentationLink: "https://cloud.google.com/iam/",
+                preferred: false
+              },
+              {
+                id: "iam:v1",
+                name: "iam",
+                version: "v1",
+                title: "Identity and Access Management (IAM) API",
+                description: "Manages identity and access control for Google Cloud resources, including the creation of service accounts, which you can use to authenticate to Google and make API calls. Enabling this API also enables the IAM Service Account Credentials API (iamcredentials.googleapis.com). However, disabling this API doesn't disable the IAM Service Account Credentials API.",
+                discoveryRestUrl: "https://iam.googleapis.com/$discovery/rest?version=v1",
+                icons: {
+                  x16: "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+                  x32: "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+                },
+                documentationLink: "https://cloud.google.com/iam/",
+                preferred: false
+              },
+              {
+                id: "iam:v2",
+                name: "iamv2",
+                version: "v2",
+                title: "Identity and Access Management (IAM) API",
+                description: "Manages identity and access control for Google Cloud resources, including the creation of service accounts, which you can use to authenticate to Google and make API calls. Enabling this API also enables the IAM Service Account Credentials API (iamcredentials.googleapis.com). However, disabling this API doesn't disable the IAM Service Account Credentials API.",
+                discoveryRestUrl: "https://iam.googleapis.com/$discovery/rest?version=v2",
+                icons: {
+                  x16: "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+                  x32: "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
+                },
+                documentationLink: "https://cloud.google.com/iam/",
+                preferred: true
+              },            
         ];
+        
+        const excludedServices = ["iam"];
 
         // filter services by preferred
         let services = [];
         if(preferred){
-            services = rootData.items.filter(item => item.preferred === true);
+            services = rootData.items.filter(item => 
+                item.preferred === true && !excludedServices.includes(item.name)
+            );
             services = services.concat(additionalServiceData);
         } else {
             // TODO implement support for nonpreferred APIs
@@ -291,6 +337,11 @@ export async function generateSpecs(options, rootDir) {
         for(let service of services){
             try {       
                 logger.info(`checking ${service.name}...`);
+
+                // if(service.name != 'serviceusage' && service.name != 'iam' && service.name != 'iamv2' && service.name != 'iamv2beta'){
+                //     continue;
+                // }
+
                 const svcResp = await fetch(service.discoveryRestUrl);
                 const svcData = await svcResp.json();
 
@@ -322,8 +373,12 @@ export async function generateSpecs(options, rootDir) {
                     logger.info(`service ${service.name} has no auth, skipping...`);
                 }
             } catch (err) {
+                // crash program if error
                 logger.error(err);
-            }
+                if(service.name != 'poly'){
+                    process.exit(1);
+                }
+           }
         }
 
     } else {
