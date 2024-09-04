@@ -375,22 +375,25 @@ export const sqlVerbOverrides = {
     compute: {
     },
     cloudbuild: {
-        'cloudbuild.projects.locations.gitLabConfigs.removeGitLabConnectedRepository' : 'exec',
-        'cloudbuild.projects.locations.bitbucketServerConfigs.removeBitbucketServerConnectedRepository' : 'exec',
+        // 'cloudbuild.projects.locations.gitLabConfigs.removeGitLabConnectedRepository' : 'exec',
+        // 'cloudbuild.projects.locations.bitbucketServerConfigs.removeBitbucketServerConnectedRepository' : 'exec',
     },
     dataform: {
-        'dataform.projects.locations.repositories.workspaces.readFile' : 'exec',        
+        // 'dataform.projects.locations.repositories.workspaces.readFile' : 'exec',        
     },
     documentai: {
-        'documentai.projects.locations.fetchProcessorTypes' : 'exec',        
+        // 'documentai.projects.locations.fetchProcessorTypes' : 'exec',        
     },
     identitytoolkit: {
-        'identitytoolkit.relyingparty.getPublicKeys' : 'exec',
+        // 'identitytoolkit.relyingparty.getPublicKeys' : 'exec',
     },
     logging: {
-        'logging.locations.operations.list' : 'exec',
+        // 'logging.locations.operations.list' : 'exec',
     },
     osconfig: {
-        'osconfig.projects.locations.instances.inventories.get' : 'exec',
+        // 'osconfig.projects.locations.instances.inventories.get' : 'exec',
+    },
+    spanner: {
+        'spanner.projects.instances.databases.dropDatabase' : 'delete',
     },
 };

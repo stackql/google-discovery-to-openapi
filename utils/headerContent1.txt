@@ -1,0 +1,22 @@
+---
+title: google
+hide_title: false
+hide_table_of_contents: false
+keywords:
+  - google
+  - google cloud platform
+  - stackql
+  - infrastructure-as-code
+  - configuration-as-data
+  - cloud inventory
+description: Query, deploy and manage Google Cloud Platform resources using SQL
+custom_edit_url: null
+image: /img/providers/google/stackql-google-provider-featured-image.png
+id: google-doc
+slug: /providers/google
+
+---
+
+import CopyableCode from '@site/src/components/CopyableCode/CopyableCode';
+
+Cloud services from Google.

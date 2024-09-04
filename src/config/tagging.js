@@ -7,7 +7,73 @@ import {
  } from './overrides.js';
  import jsonpointer from 'jsonpointer';
 
+//
+// constant declarations
+//
+
 const exceptions = ['gitlab', 'github', 'dotcom'];
+
+const googleSelectMethods = [
+    'aggregatedList',
+    'get',
+    'batchGet',
+    'list',
+    'query',
+    'fetch',
+    'retrieve',
+];
+
+const googleSelectPOSTMethods = [
+    'get',
+    'list',
+    'fetch',
+];
+
+const googleInsertMethods = [
+    'insert',
+    'create',
+    'add',
+    'batchCreate',
+    'bulkInsert',
+];
+
+const googleDeleteMethods = [
+    'delete',
+    'remove',
+];
+
+const googleDeletePOSTMethods = [
+    'delete',
+    'destroy',
+    'batchDelete',
+    'bulkDelete',
+    'remove',
+];
+
+const googleUpdateMethods = [
+    'update',
+    'patch',
+];
+
+const googleUpdatePOSTMethods = [
+    'update',
+    'patch',
+    'batchUpdate',
+];
+
+const googleReplaceMethods = [
+    'update',
+    'replace',
+];
+
+const googleReplacePOSTMethods = [
+    'replace',
+];
+
+
+//
+// utility functions
+//
 
 function camelToSnake(name) {
     // Replace exceptions in string regardless of case
@@ -55,6 +121,27 @@ function getResourceNameFromOperationId(operationId) {
     return camelToSnake(opTokens[opTokens.length - 2]);
 
 }
+
+function ifStartsWithOrEquals(str, substr) {
+    return str.startsWith(substr) || str === substr;
+}
+
+function checkAdditionalProperties(moperationObj, schemasObj) {
+    const schema = moperationObj.responses?.['200']?.content?.['application/json']?.schema?.['$ref'];
+    const schemaObj = schemasObj[schema.split('/').pop()];
+
+    if (schemaObj.properties) {
+        const hasAdditionalProperties = Object.values(schemaObj.properties).some(field => 'additionalProperties' in field);
+        return hasAdditionalProperties ? 'exec' : 'select';
+    } else {
+        logger.warn(`schemaObj.properties not found for ${schema}`);
+        return 'exec';
+    }
+}
+
+//
+// exported functions
+//
 
 export function getMethodName(service, operationId, debug) {
     const fullyQualifiedMethodNameServices = [
@@ -179,38 +266,6 @@ export function getResource(service, operationId, debug){
     return [resource, action];
 }
 
-function checkAdditionalProperties(moperationObj, schemasObj) {
-    const schema = moperationObj.responses?.['200']?.content?.['application/json']?.schema?.['$ref'];
-    const schemaObj = schemasObj[schema.split('/').pop()];
-
-    if (schemaObj.properties) {
-        const hasAdditionalProperties = Object.values(schemaObj.properties).some(field => 'additionalProperties' in field);
-        return hasAdditionalProperties ? 'exec' : 'select';
-    } else {
-        logger.warn(`schemaObj.properties not found for ${schema}`);
-        return 'exec';
-    }
-}
-
-function ifStartsWithOrEquals(str, substr) {
-    return str.startsWith(substr) || str === substr;
-}
-
-const googleSelectMethods = [
-    'aggregatedList',
-    'get',
-    'list',
-];
-
-const googleInsertMethods = [
-    'insert',
-    'create',
-];
-
-const googleDeleteMethods = [
-    'delete',
-];
-
 export function getObjectKey(openapiDoc, service, operationId, debug) {
 
     // Check if the service exists in the objectKeyByOperationId object
@@ -308,34 +363,83 @@ export function getSQLVerb(service, resource, action, operationId, httpPath, htt
     // default sql verb to 'exec'
     let sqlVerb = 'exec';
 
-    // if the operationId ends with 'patch' or 'update' return 'update'
-    if (operationId.endsWith('.patch') || operationId.endsWith('.update')) {
-        return 'update';
-    }
+    //
+    // iam_policies
+    //
 
     // if resource ends with '_iam_policies' and last token of 'operationId' is 'getIamPolicy' return 'select'
     if (resource.endsWith('_iam_policies') && operationId.endsWith('.getIamPolicy')) {
         return 'select';
     }
-    
-    // check if action equals or starts with a select method
-    if (googleSelectMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'get') {
-        sqlVerb = 'select';
-    }
 
-    // aggregatedList methods
-    if (operationId.endsWith('.aggregatedList')) {
-        sqlVerb = 'select';
+    // if resource ends with '_iam_policies' and last token of 'operationId' is 'setIamPolicy' return 'replace'
+    if (resource.endsWith('_iam_policies') && operationId.endsWith('.setIamPolicy')) {
+        return 'replace';
     }    
+
+    //
+    // insert methods
+    //
 
     // check if action equals or starts with an insert method
     if (googleInsertMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
         sqlVerb = 'insert';
     }
+    
+    //
+    // update methods
+    //
+
+    // check if action equals or starts with an update method
+    if (googleUpdateMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'patch') {
+        sqlVerb = 'update';
+    }
+
+    // update POST exceptions
+    if (googleUpdatePOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'update';
+    }
+
+    //  
+    // replace methods
+    //
+
+    // check if action equals or starts with a replace method
+    if (googleReplaceMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'put') {
+        sqlVerb = 'replace';
+    }
+
+    // replace POST exceptions
+    if (googleReplacePOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'replace';
+    }
+
+    //
+    // delete methods
+    //
 
     // check if action equals or starts with a delete method
     if (googleDeleteMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'delete') {
         sqlVerb = 'delete';
+    }
+
+    // delete POST exceptions
+    if (googleDeletePOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'delete';
+    }
+
+    //
+    // select methods
+    //
+
+    // check if action equals or starts with a select method
+    if (googleSelectMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'get') {
+        sqlVerb = 'select';
+    }
+
+    // select POST exceptions
+    if (googleSelectPOSTMethods.some(method => ifStartsWithOrEquals(action, method)) && httpVerb === 'post') {
+        sqlVerb = 'select';
     }
 
     // sqlVerb = sqlVerb === 'select' ? checkAdditionalProperties(operationObj, schemasObj) : sqlVerb;    

@@ -45,6 +45,14 @@ false \
 true
 ```
 
+## Inspect
+
+```bash
+PROVIDER_REGISTRY_ROOT_DIR="$(pwd)/openapi"
+REG_STR='{"url": "file://'${PROVIDER_REGISTRY_ROOT_DIR}'", "localDocRoot": "'${PROVIDER_REGISTRY_ROOT_DIR}'", "verifyConfig": {"nopVerify": true}}'
+./stackql shell --registry="${REG_STR}" --colorscheme=null
+```
+
 ## Publish to the StackQL Provider Registry
 
 Raise a PR to add the provider from `openapi/src` to the [stackql-provider-registry](https://github.com/stackql/stackql-provider-registry/tree/dev/providers/src).  Once merged into the `dev` branch it will be tested and deployed to the `dev` registry, which can be accessed via:
