@@ -36,8 +36,7 @@ export async function createResourceIndexContent(serviceName, resourceName, reso
     // console.info('methods:', methods);
 
     // Start building the markdown content
-    let content = `
----
+    let content = `---
 title: ${resourceName}
 hide_title: false
 hide_table_of_contents: false

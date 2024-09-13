@@ -8,7 +8,7 @@ import { createResourceIndexContent } from './resource-index-content.js';
 //
 
 const providerName = 'google';
-const googleProviderVer = 'v24.07.00244';
+const googleProviderVer = 'v24.09.00251';
 const staticServices = [];
 
 //
@@ -243,6 +243,12 @@ async function main(){
         totalServicesCount++;
         await createDocsForService(filePath); // Ensure one-by-one processing
     }
+
+    // totalResourcesCount is the sum of all resources in all services
+    totalResourcesCount = fs.readdirSync(`${providerName}-docs/providers/${providerName}`, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => fs.readdirSync(`${providerName}-docs/providers/${providerName}/${dirent.name}`).length)
+        .reduce((a, b) => a + b, 0);
 
     //
     // get data for provider index
