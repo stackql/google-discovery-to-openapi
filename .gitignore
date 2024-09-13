@@ -9,3 +9,5 @@ stackql-azure-cloud-shell.sh
 stackql-google-cloud-shell.sh
 creds.json
 resources-report.csv
+google-docs/
+nohup.out
