@@ -57,7 +57,7 @@ import CopyableCode from '@site/src/components/CopyableCode/CopyableCode';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-Creates, updates, deletes or gets an <code>${pluralize.singular(resourceName)}</code> resource or lists <code>${resourceName}</code> in a region
+Creates, updates, deletes, gets or lists a <code>${resourceName}</code> resource.
 
 ## Overview
 <table><tbody>
@@ -339,9 +339,9 @@ function generateUpdateExample(serviceName, resourceName, resourceData, paths, c
         // Generate the WHERE clause for the required params
         const whereClause = requiredParams.map(param => `${param} = '{{ ${param} }}'`).join('\nAND ');
 
-        let sqlDescription = `Updates a ${pluralize.singular(resourceName)} only if the necessary resources are available.`
+        let sqlDescription = `Updates a <code>${resourceName}</code> resource.`
         if(isReplace) {
-            sqlDescription = `Replaces all fields in the specified ${pluralize.singular(resourceName)} resource.`;
+            sqlDescription = `Replaces all fields in the specified <code>${resourceName}</code> resource.`;
         }
 
         return `
@@ -350,6 +350,7 @@ function generateUpdateExample(serviceName, resourceName, resourceData, paths, c
 ${sqlDescription}
 
 ${sqlCodeBlockStart}
+/*+ update */
 ${isReplace ? 'REPLACE': 'UPDATE'} google.${serviceName}.${resourceName}
 SET 
 ${setParams}
@@ -366,9 +367,10 @@ function generateDeleteExample(serviceName, resourceName, method) {
     return `
 ## ${mdCodeAnchor}DELETE${mdCodeAnchor} example
 
-Deletes the specified ${pluralize.singular(resourceName)} resource.
+Deletes the specified <code>${resourceName}</code> resource.
 
 ${sqlCodeBlockStart}
+/*+ delete */
 DELETE FROM google.${serviceName}.${resourceName}
 WHERE ${method.RequiredParams.split(', ').map(param => `${param} = '{{ ${param} }}'`).join('\nAND ')};
 ${codeBlockEnd}
