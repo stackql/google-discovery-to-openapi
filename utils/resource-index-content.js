@@ -1,4 +1,5 @@
 import pluralize from 'pluralize';
+import yaml from 'js-yaml';
 import { runQuery } from '@stackql/pgwire-lite';
 const connectionOptions = {
   user: 'stackql',
@@ -121,31 +122,79 @@ Creates, updates, deletes or gets an <code>${pluralize.singular(resourceName)}</
 
 // Helper functions to generate examples for each SQL verb
 
-function getSchemaManifest(schema, level = 2) {
-    const indent = '  '.repeat(level); // Indent based on the nesting level
+// function getSchemaManifest(schema, level = 2) {
+//     const indent = '  '.repeat(level); // Indent based on the nesting level
 
+//     // Recursive function to process schema properties
+//     function processProperties(properties, indentLevel) {
+//         if (!properties) return ''; // Guard against undefined or null properties
+
+//         return Object.entries(properties).map(([key, value]) => {
+//             if (value.type === 'array' && value.items && value.items.properties) {
+//                 // If it's an array, process the first element and recurse
+//                 return `${indentLevel}- name: ${key}\n${indentLevel}  value:\n${processProperties(value.items.properties, indentLevel + '    ')}`;
+//             } else if (value.type === 'object' && value.properties) {
+//                 // If it's an object, recursively process its properties
+//                 return `${indentLevel}- name: ${key}\n${indentLevel}  value:\n${processProperties(value.properties, indentLevel + '    ')}`;
+//             } else {
+//                 // For scalar types, output as a simple value
+//                 const placeholder = value.type === 'string' ? `'{{ ${key} }}'` 
+//                     : value.type === 'boolean' ? `{{ ${key} }}`
+//                     : value.type === 'number' ? `{{ ${key} }}`
+//                     : `'{{ ${key} }}'`; // Fallback to string template
+//                 return `${indentLevel}- name: ${key}\n${indentLevel}  value: ${placeholder}`;
+//             }
+//         }).join('\n');
+//     }
+
+//     // Start processing the schema properties
+//     return `resources:\n  - name: instance\n    props:\n${processProperties(schema?.properties, indent)}`;
+// }
+
+function getSchemaManifest(schema) {
     // Recursive function to process schema properties
-    function processProperties(properties, indentLevel) {
+    function processProperties(properties) {
+        if (!properties) return [];
+
         return Object.entries(properties).map(([key, value]) => {
-            if (value.type === 'array' && value.items) {
+            if (value.type === 'array' && value.items && value.items.properties) {
                 // If it's an array, process the first element and recurse
-                return `${indentLevel}- name: ${key}\n${indentLevel}  value:\n${processProperties(value.items.properties || {}, indentLevel + '    ')}`;
-            } else if (value.type === 'object') {
+                return {
+                    name: key,
+                    value: [processProperties(value.items.properties)]
+                };
+            } else if (value.type === 'object' && value.properties) {
                 // If it's an object, recursively process its properties
-                return `${indentLevel}- name: ${key}\n${indentLevel}  value:\n${processProperties(value.properties || {}, indentLevel + '    ')}`;
+                return {
+                    name: key,
+                    value: processProperties(value.properties)
+                };
             } else {
                 // For scalar types, output as a simple value
-                const placeholder = value.type === 'string' ? `'{{ ${key} }}'` 
+                const placeholder = value.type === 'string' ? `{{ ${key} }}`
                     : value.type === 'boolean' ? `{{ ${key} }}`
                     : value.type === 'number' ? `{{ ${key} }}`
-                    : `'{{ ${key} }}'`; // Fallback to string template
-                return `${indentLevel}- name: ${key}\n${indentLevel}  value: ${placeholder}`;
+                    : `{{ ${key} }}`; // Fallback to string template
+                return {
+                    name: key,
+                    value: placeholder
+                };
             }
-        }).join('\n');
+        });
     }
 
-    // Start processing the schema properties
-    return `resources:\n  - name: instance\n    props:\n${processProperties(schema.properties, indent)}`;
+    // Build the object structure for the manifest
+    const manifest = {
+        resources: [
+            {
+                name: 'instance',
+                props: processProperties(schema?.properties)
+            }
+        ]
+    };
+
+    // Convert the manifest object to YAML
+    return yaml.dump(manifest, { quotingType: "'" }); // Ensure single quotes around string values
 }
 
 function generateSelectExample(serviceName, resourceName, method, fields) {
