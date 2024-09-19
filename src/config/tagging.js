@@ -4,6 +4,7 @@ import {
     resourceNameOverridesByResourceName,
     sqlVerbOverrides,
     objectKeyByOperationId,
+    methodNameOverrides,
  } from './overrides.js';
  import jsonpointer from 'jsonpointer';
 
@@ -144,7 +145,15 @@ function checkAdditionalProperties(moperationObj, schemasObj) {
 //
 
 export function getMethodName(service, operationId, debug) {
+
+    const override = methodNameOverrides[service] && methodNameOverrides[service][operationId];
+    
+    if (override) {
+        return override;
+    }
+
     const fullyQualifiedMethodNameServices = [
+        // 'iam',
         'accessapproval',
         'analyticshub',
         'apigee',

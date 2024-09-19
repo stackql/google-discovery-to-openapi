@@ -50,7 +50,7 @@ true
 ```bash
 PROVIDER_REGISTRY_ROOT_DIR="$(pwd)/openapi"
 REG_STR='{"url": "file://'${PROVIDER_REGISTRY_ROOT_DIR}'", "localDocRoot": "'${PROVIDER_REGISTRY_ROOT_DIR}'", "verifyConfig": {"nopVerify": true}}'
-./stackql shell --registry="${REG_STR}" --colorscheme=null
+./stackql shell --registry="${REG_STR}"
 ```
 
 ## Publish to the StackQL Provider Registry

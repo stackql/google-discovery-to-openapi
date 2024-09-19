@@ -120,81 +120,52 @@ Creates, updates, deletes, gets or lists a <code>${resourceName}</code> resource
 }
 
 // Helper functions to generate examples for each SQL verb
+function getSchemaManifest(schema, allSchemas) {
+    // Recursive function to process schema properties and return them in the desired format
+    function processProperties(properties, visitedRefs = new Set()) {
+        if (!properties) return {};
 
-// function getSchemaManifest(schema, level = 2) {
-//     const indent = '  '.repeat(level); // Indent based on the nesting level
-
-//     // Recursive function to process schema properties
-//     function processProperties(properties, indentLevel) {
-//         if (!properties) return ''; // Guard against undefined or null properties
-
-//         return Object.entries(properties).map(([key, value]) => {
-//             if (value.type === 'array' && value.items && value.items.properties) {
-//                 // If it's an array, process the first element and recurse
-//                 return `${indentLevel}- name: ${key}\n${indentLevel}  value:\n${processProperties(value.items.properties, indentLevel + '    ')}`;
-//             } else if (value.type === 'object' && value.properties) {
-//                 // If it's an object, recursively process its properties
-//                 return `${indentLevel}- name: ${key}\n${indentLevel}  value:\n${processProperties(value.properties, indentLevel + '    ')}`;
-//             } else {
-//                 // For scalar types, output as a simple value
-//                 const placeholder = value.type === 'string' ? `'{{ ${key} }}'` 
-//                     : value.type === 'boolean' ? `{{ ${key} }}`
-//                     : value.type === 'number' ? `{{ ${key} }}`
-//                     : `'{{ ${key} }}'`; // Fallback to string template
-//                 return `${indentLevel}- name: ${key}\n${indentLevel}  value: ${placeholder}`;
-//             }
-//         }).join('\n');
-//     }
-
-//     // Start processing the schema properties
-//     return `resources:\n  - name: instance\n    props:\n${processProperties(schema?.properties, indent)}`;
-// }
-
-function getSchemaManifest(schema) {
-    // Recursive function to process schema properties
-    function processProperties(properties) {
-        if (!properties) return [];
-
-        return Object.entries(properties).map(([key, value]) => {
-            if (value.type === 'array' && value.items && value.items.properties) {
-                // If it's an array, process the first element and recurse
-                return {
-                    name: key,
-                    value: [processProperties(value.items.properties)]
-                };
-            } else if (value.type === 'object' && value.properties) {
-                // If it's an object, recursively process its properties
-                return {
-                    name: key,
-                    value: processProperties(value.properties)
-                };
-            } else {
-                // For scalar types, output as a simple value
-                const placeholder = value.type === 'string' ? `{{ ${key} }}`
-                    : value.type === 'boolean' ? `{{ ${key} }}`
-                    : value.type === 'number' ? `{{ ${key} }}`
-                    : `{{ ${key} }}`; // Fallback to string template
-                return {
-                    name: key,
-                    value: placeholder
-                };
-            }
-        });
+        return Object.entries(properties)
+            .map(([key, value]) => {
+                if (value.$ref) {
+                    // Resolve $ref to the actual schema
+                    const ref = value.$ref.replace('#/components/schemas/', '');
+                    if (visitedRefs.has(ref)) {
+                        console.log(`Cyclic reference detected for ${ref}, skipping.`);
+                        return null; // Avoid infinite recursion
+                    }
+                    visitedRefs.add(ref);
+                    const resolvedSchema = allSchemas[ref];
+                    return {
+                        [key]: processProperties(resolvedSchema.properties, visitedRefs)
+                    };
+                } else if (value.type === 'array' && value.items) {
+                    // Handle arrays and recursively process their items
+                    const itemSchema = value.items.$ref 
+                        ? processProperties(allSchemas[value.items.$ref.replace('#/components/schemas/', '')].properties, visitedRefs)
+                        : processProperties(value.items.properties || value.items, visitedRefs);
+                    return {
+                        [key]: [itemSchema || value.items.type || 'string']
+                    };
+                } else if (value.type === 'object' && value.properties) {
+                    // Handle objects and recursively process their properties
+                    return {
+                        [key]: processProperties(value.properties, visitedRefs)
+                    };
+                } else {
+                    // For scalar types, return a simple key-value pair with type
+                    return {
+                        [key]: value.type || 'string' // Default to 'string' if no type is specified
+                    };
+                }
+            })
+            .reduce((acc, val) => ({ ...acc, ...val }), {}); // Flatten the result
     }
 
-    // Build the object structure for the manifest
-    const manifest = {
-        resources: [
-            {
-                name: 'instance',
-                props: processProperties(schema?.properties)
-            }
-        ]
-    };
-
-    // Convert the manifest object to YAML
-    return yaml.dump(manifest, { quotingType: "'" }); // Ensure single quotes around string values
+    // Start processing the schema's top-level properties
+    return processProperties(schema?.properties);
 }
+
 
 function generateSelectExample(serviceName, resourceName, method, fields) {
     // Map over the fields array to create a list of column names
@@ -214,6 +185,16 @@ ${codeBlockEnd}
 `;
 }
 
+const readOnlyPropertyNames = [
+    'selfLink',
+    'kind',
+    'creationTimestamp',
+    'createTime',
+    'updateTime',
+    'id',
+    'selfLinkWithId',
+];
+
 function generateInsertExample(serviceName, resourceName, resourceData, paths, componentsSchemas, method) {
     try {
         const requiredParams = method.RequiredParams.split(', ').map(param => param.trim()); // splitting requiredParams into an array
@@ -230,13 +211,14 @@ function generateInsertExample(serviceName, resourceName, resourceData, paths, c
             schema = componentsSchemas[schemaRef.split('/').pop()] || {};
         }
 
-        // Extract field names and data types from the schema
         const schemaFields = schema.properties
-            ? Object.entries(schema.properties).map(([key, value]) => ({
-                name: key,
-                type: value.type
-            }))
-            : [];
+            ? Object.entries(schema.properties)
+                .filter(([key, value]) => !value.readOnly && !readOnlyPropertyNames.includes(key))  // Filter out properties with readOnly: true or matching readOnlyPropertyNames
+                .map(([key, value]) => ({
+                    name: key,
+                    type: value.type
+                }))
+            : [];        
 
         // Combine required params and schema fields
         const allFields = [
@@ -260,7 +242,8 @@ function generateInsertExample(serviceName, resourceName, resourceData, paths, c
             }
         }).join(',\n');
 
-        const yamlManifest = getSchemaManifest(schema);
+        // const yamlManifest = getSchemaManifest(schema, componentsSchemas);
+        const yamlManifest = yaml.dump(getSchemaManifest(schema, componentsSchemas), { quotingType: "'", lineWidth: -1, noRefs: true, skipInvalid: true });
 
         return `
 ## ${mdCodeAnchor}INSERT${mdCodeAnchor} example
@@ -317,10 +300,12 @@ function generateUpdateExample(serviceName, resourceName, resourceData, paths, c
 
         // Extract field names and data types from the schema
         const schemaFields = schema.properties
-            ? Object.entries(schema.properties).map(([key, value]) => ({
-                name: key,
-                type: value.type
-            }))
+            ? Object.entries(schema.properties)
+                .filter(([key, value]) => !value.readOnly && !readOnlyPropertyNames.includes(key))  // Filter out properties with readOnly: true or matching readOnlyPropertyNames
+                .map(([key, value]) => ({
+                    name: key,
+                    type: value.type
+                }))
             : [];
 
         // Generate the field names and corresponding values for the SET clause
@@ -345,7 +330,7 @@ function generateUpdateExample(serviceName, resourceName, resourceData, paths, c
         }
 
         return `
-## ${mdCodeAnchor}UPDATE${mdCodeAnchor} example
+## ${mdCodeAnchor}${isReplace ? 'REPLACE': 'UPDATE'}${mdCodeAnchor} example
 
 ${sqlDescription}
 
