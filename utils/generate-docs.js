@@ -8,7 +8,7 @@ import { createResourceIndexContent } from './resource-index-content.js';
 //
 
 const providerName = 'google';
-const googleProviderVer = 'v24.09.00251';
+const googleProviderVer = 'v24.09.00254';
 const staticServices = [];
 
 //

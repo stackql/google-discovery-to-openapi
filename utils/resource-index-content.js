@@ -120,56 +120,64 @@ Creates, updates, deletes, gets or lists a <code>${resourceName}</code> resource
 }
 
 // Helper functions to generate examples for each SQL verb
-function getSchemaManifest(schema, allSchemas) {
-    // Recursive function to process schema properties and return them in the desired format
-    function processProperties(properties, visitedRefs = new Set()) {
-        if (!properties) return {};
+function getSchemaManifest(schema, allSchemas, maxDepth = 10) {
+    // Helper function to resolve schema references
+    const resolveRef = (ref, visitedRefs, depth) => {
+        const resolvedSchema = allSchemas[ref];
+        return resolvedSchema ? processProperties(resolvedSchema.properties, visitedRefs, depth + 1) : 'string';
+    };
 
-        return Object.entries(properties)
-            .map(([key, value]) => {
-                if (value.$ref) {
-                    // Resolve $ref to the actual schema
-                    const ref = value.$ref.replace('#/components/schemas/', '');
-                    if (visitedRefs.has(ref)) {
-                        console.log(`Cyclic reference detected for ${ref}, skipping.`);
-                        return null; // Avoid infinite recursion
-                    }
-                    visitedRefs.add(ref);
-                    const resolvedSchema = allSchemas[ref];
-                    return {
-                        [key]: processProperties(resolvedSchema.properties, visitedRefs)
-                    };
-                } else if (value.type === 'array' && value.items) {
-                    // Handle arrays and recursively process their items
-                    const itemSchema = value.items.$ref 
-                        ? processProperties(allSchemas[value.items.$ref.replace('#/components/schemas/', '')].properties, visitedRefs)
-                        : processProperties(value.items.properties || value.items, visitedRefs);
-                    return {
-                        [key]: [itemSchema || value.items.type || 'string']
-                    };
-                } else if (value.type === 'object' && value.properties) {
-                    // Handle objects and recursively process their properties
-                    return {
-                        [key]: processProperties(value.properties, visitedRefs)
-                    };
-                } else {
-                    // For scalar types, return a simple key-value pair with type
-                    return {
-                        [key]: value.type || 'string' // Default to 'string' if no type is specified
-                    };
+    // Helper function to process array items
+    const processArrayItems = (value, visitedRefs, depth) => {
+        if (value.items.$ref) {
+            return [resolveRef(value.items.$ref.replace('#/components/schemas/', ''), visitedRefs, depth)];
+        } else if (value.items.properties) {
+            return [processProperties(value.items.properties, visitedRefs, depth)];
+        } else {
+            return [value.items.type || 'string'];
+        }
+    };
+
+    // Recursive function to process schema properties and return them in the desired format
+    function processProperties(properties, visitedRefs = new Set(), depth = 0) {
+        if (!properties || depth > maxDepth) return [];
+
+        return Object.entries(properties).map(([key, value]) => {
+            if (value.$ref) {
+                const ref = value.$ref.replace('#/components/schemas/', '');
+                if (visitedRefs.has(ref)) {
+                    console.log(`Cyclic reference detected for ${ref}, skipping.`);
+                    return null;
                 }
-            })
-            .reduce((acc, val) => ({ ...acc, ...val }), {}); // Flatten the result
+                visitedRefs.add(ref);
+                return { name: key, value: resolveRef(ref, visitedRefs, depth) };
+            } else if (value.type === 'array' && value.items) {
+                return { name: key, value: processArrayItems(value, visitedRefs, depth) };
+            } else if (value.type === 'object' && value.properties) {
+                return { name: key, value: processProperties(value.properties, visitedRefs, depth + 1) };
+            } else {
+                return { name: key, value: value.type || 'string' };
+            }
+        }).filter(item => item !== null); // Remove null values from cyclic references
     }
 
-    // Start processing the schema's top-level properties
-    return processProperties(schema?.properties);
+    // Wrap the final result in the desired format
+    return [
+        {
+            name: "your_resource_model_name",
+            props: processProperties(schema?.properties)
+        }
+    ];
 }
-
 
 function generateSelectExample(serviceName, resourceName, method, fields) {
     // Map over the fields array to create a list of column names
     const selectColumns = fields.map(field => field.name).join(',\n');
+
+    // Check if there are required parameters
+    const whereClause = method.RequiredParams
+        ? `WHERE ${method.RequiredParams.split(', ').map(param => `${param} = '{{ ${param} }}'`).join('\nAND ')}`
+        : '';
 
     return `
 ## ${mdCodeAnchor}SELECT${mdCodeAnchor} examples
@@ -180,7 +188,7 @@ ${sqlCodeBlockStart}
 SELECT
 ${selectColumns}
 FROM google.${serviceName}.${resourceName}
-WHERE ${method.RequiredParams.split(', ').map(param => `${param} = '{{ ${param} }}'`).join('\nAND ')}; 
+${whereClause};
 ${codeBlockEnd}
 `;
 }
@@ -197,7 +205,10 @@ const readOnlyPropertyNames = [
 
 function generateInsertExample(serviceName, resourceName, resourceData, paths, componentsSchemas, method) {
     try {
-        const requiredParams = method.RequiredParams.split(', ').map(param => param.trim()); // splitting requiredParams into an array
+        const requiredParams = method.RequiredParams
+            ? method.RequiredParams.split(', ').map(param => param.trim())  // Splitting requiredParams into an array
+            : [];  // If no RequiredParams, set it to an empty array
+
         let schema = {};
 
         // Safely retrieve schemaRef and schema properties
@@ -218,7 +229,7 @@ function generateInsertExample(serviceName, resourceName, resourceData, paths, c
                     name: key,
                     type: value.type
                 }))
-            : [];        
+            : [];
 
         // Combine required params and schema fields
         const allFields = [
@@ -226,23 +237,26 @@ function generateInsertExample(serviceName, resourceName, resourceData, paths, c
             ...schemaFields
         ];
 
-        // Generate the field names for the INSERT INTO clause
-        const insertFields = allFields.map(field => field.name).join(',\n');
+        // Check if there are required parameters to avoid empty insert fields
+        const insertFields = allFields.length > 0
+            ? allFields.map(field => field.name).join(',\n')
+            : '';  // No fields, leave it empty
 
         // Generate the corresponding values for the SELECT clause, handling different data types
-        const selectValues = allFields.map(field => {
-            if (field.type === 'string') {
-                return `'{{ ${field.name} }}'`; // for strings, use '{{ fieldName }}'
-            } else if (field.type === 'boolean') {
-                return `true|false`; // assuming boolean is true for this example, can be false as well
-            } else if (field.type === 'number') {
-                return `number`; // assuming number is 0 for this example
-            } else {
-                return `'{{ ${field.name} }}'`; // fallback to string template
-            }
-        }).join(',\n');
+        const selectValues = allFields.length > 0
+            ? allFields.map(field => {
+                if (field.type === 'string') {
+                    return `'{{ ${field.name} }}'`; // for strings, use '{{ fieldName }}'
+                } else if (field.type === 'boolean') {
+                    return `{{ ${field.name} }}`; // assuming boolean is true for this example, can be false as well
+                } else if (field.type === 'number') {
+                    return `{{ ${field.name} }}`; // assuming number is 0 for this example
+                } else {
+                    return `'{{ ${field.name} }}'`; // fallback to string template
+                }
+            }).join(',\n')
+            : '';  // No values, leave it empty
 
-        // const yamlManifest = getSchemaManifest(schema, componentsSchemas);
         const yamlManifest = yaml.dump(getSchemaManifest(schema, componentsSchemas), { quotingType: "'", lineWidth: -1, noRefs: true, skipInvalid: true });
 
         return `
@@ -281,6 +295,7 @@ ${codeBlockEnd}
         console.log('Error generating INSERT example:', error);
     }
 }
+
 
 function generateUpdateExample(serviceName, resourceName, resourceData, paths, componentsSchemas, method, isReplace = false) {
     try {
